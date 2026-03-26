@@ -295,10 +295,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   </div>
   <div class="fld"><label>네이버 카테고리</label>
     <select id="nvKwCat">
-      <option>정부지원금·복지</option><option>생활정보 일반</option>
-      <option>금융·제테크</option><option>건강·의료</option>
-      <option>육아·교육</option><option>국내여행·관광정보</option>
-      <option>해외여행·관광정보</option>
+      <option>정부지원금·복지</option><option>생활정보</option>
+      <option>금융·재테크</option><option>건강·의료</option>
+      <option>육아·교육</option><option>이슈·트렌드</option>
     </select>
   </div>
 </div>
@@ -923,10 +922,6 @@ JSON 배열만:
     autoSave();
     saveHist(fNvKw,fTsKw,gd.ts,gd.nv,gd.images);
     addLog(`✅ 완료 NV:${fNvKw} / TS:${fTsKw}`,'lok');
-    
-    // 바탕화면 블로그 폴더에 자동 저장
-    await saveToDesktop(fNvKw,fTsKw,gd.nv,gd.ts,gd.images);
-    
     setTimeout(()=>setProg(0,''),4000);
 
   }catch(e){
@@ -1013,41 +1008,6 @@ async function downloadZip(){
     URL.revokeObjectURL(url);
     toast('📦 ZIP 완료!');
   }catch(e){toast('❌ ZIP 오류: '+e.message);}
-}
-
-/* ═══ SAVE TO DESKTOP ═══ */
-async function saveToDesktop(nvKw,tsKw,nvText,tsText,images){
-  try{
-    // 이미지들을 base64로 변환
-    const imgData=[];
-    for(const img of images){
-      if(img.blobUrl){
-        const r=await fetch(img.blobUrl);
-        const b=await r.blob();
-        const ab=await b.arrayBuffer();
-        const base64=btoa(String.fromCharCode(...new Uint8Array(ab)));
-        const fname=seoName(img.seoBase||img.title,img.num||images.indexOf(img)+1);
-        imgData.push({base64,filename:fname});
-      }
-    }
-    
-    // 서버에 저장 요청
-    const r=await fetch('/api/save',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({nv:nvText,ts:tsText,images:imgData})
-    });
-    const d=await r.json();
-    
-    if(d.success){
-      addLog(`💾 저장 완료: Desktop\\블로그\\${new Date().toISOString().slice(0,10)}\\`,'lok');
-      toast(`✅ 바탕화면 블로그 폴더에 저장됨!`);
-    }else{
-      addLog('⚠ 저장 실패: '+d.error,'linf');
-    }
-  }catch(e){
-    addLog('⚠ 저장 오류: '+e.message,'lerr');
-  }
 }
 
 /* ═══ FIX REQUEST ═══ */

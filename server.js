@@ -85,59 +85,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── 파일 저장 (바탕화면 블로그 폴더) ──
-  if (req.method === 'POST' && req.url === '/api/save') {
-    const { nv, ts, images } = await readBody(req);
-    const homeDir = require('os').homedir();
-    const blogDir = path.join(homeDir, 'Desktop', '블로그');
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const dateFolder = path.join(blogDir, dateStr);
-
-    try {
-      // 폴더 생성 (없으면)
-      if (!fs.existsSync(blogDir)) fs.mkdirSync(blogDir, { recursive: true });
-      if (!fs.existsSync(dateFolder)) fs.mkdirSync(dateFolder, { recursive: true });
-
-      let saved = [];
-      
-      // 네이버 글 저장
-      if (nv) {
-        const nvFile = path.join(dateFolder, '네이버_글.txt');
-        fs.writeFileSync(nvFile, nv, 'utf8');
-        saved.push('네이버_글.txt');
-      }
-
-      // 티스토리 글 저장
-      if (ts) {
-        const tsFile = path.join(dateFolder, '티스토리_글.html');
-        fs.writeFileSync(tsFile, ts, 'utf8');
-        saved.push('티스토리_글.html');
-      }
-
-      // 이미지 저장
-      if (Array.isArray(images) && images.length > 0) {
-        const imgFolder = path.join(dateFolder, '이미지');
-        if (!fs.existsSync(imgFolder)) fs.mkdirSync(imgFolder, { recursive: true });
-        
-        for (const img of images) {
-          if (img.base64 && img.filename) {
-            const buffer = Buffer.from(img.base64, 'base64');
-            const imgFile = path.join(imgFolder, img.filename);
-            fs.writeFileSync(imgFile, buffer);
-            saved.push(img.filename);
-          }
-        }
-      }
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, path: dateFolder, saved }));
-    } catch(e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
   // ── 정적 파일 서빙 ──
   let filePath = req.url === '/' ? '/public/index.html' : req.url;
   if (!filePath.startsWith('/public')) filePath = '/public' + filePath;

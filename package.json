@@ -1,10 +1,9 @@
 {
   "name": "blogai-v10",
   "version": "10.0.0",
-  "description": "BlogAI v10 — 네이버 + 티스토리 자동 블로그 생성기 (Vercel)",
+  "description": "BlogAI v10",
   "scripts": {
-    "start": "node server.js",
-    "deploy": "vercel --prod"
+    "start": "node server.js"
   },
   "dependencies": {
     "node-fetch": "2.7.0"

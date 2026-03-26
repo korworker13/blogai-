@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 배포 (GitHub + Vercel 자동)",
+      "type": "shell",
+      "command": "git add . && git commit -m \"update $(date '+%Y-%m-%d %H:%M')\" && git push",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "▶ 로컬 서버 시작",
+      "type": "shell",
+      "command": "node server.js",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
