@@ -272,13 +272,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <label>Tavily API 키 <span style="color:var(--tl)">실시간 뉴스 · 핫키워드</span></label>
     <input type="password" id="tavilyKey" placeholder="tvly-..." oninput="autoSave()">
   </div>
+  <div class="fld">
+    <label>Gemini API 키 <span style="color:var(--tl)">이미지 생성 대체 (Pollinations 실패시)</span></label>
+    <input type="password" id="geminiKey" placeholder="AIzaSy..." oninput="autoSave()">
+  </div>
   <div class="tog">
     <span>키 저장 (이 기기)</span>
     <label class="tw"><input type="checkbox" id="saveTgl" onchange="onSaveTgl()"><div class="ttrack"></div><div class="tthumb"></div></label>
   </div>
   <div class="guide">
     <b>Claude</b>: console.anthropic.com &nbsp;|&nbsp; <b>Tavily</b>: app.tavily.com (무료 1,000회/월)<br>
-    <b>이미지</b>: Pollinations AI — 서버 경유로 다운로드 완벽 해결
+    <b>이미지</b>: Pollinations AI (무료) → 실패시 Gemini Imagen 자동 전환<br>
+    <b>저장</b>: 생성 완료 → 바탕화면\블로그\날짜폴더 자동 저장
   </div>
 </div>
 
@@ -471,7 +476,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 
   <!-- 이미지 -->
   <div class="pane" id="pane-img">
-    <div class="save-banner">💡 <b>이미지 저장 방법:</b> 아래 <b>열기</b> 버튼 클릭 → 새 탭에서 이미지 완전히 로드된 후 → <b>우클릭 → 이미지를 다른 이름으로 저장</b></div>
+    <div class="save-banner">💾 생성 완료 시 <b>바탕화면 &gt; 블로그 &gt; 날짜 폴더</b>에 자동 저장됩니다 (서버 실행 중일 때). 각 이미지는 <b>💾 다운로드</b> 버튼으로 개별 저장도 가능합니다.</div>
     <div class="zip-row" id="zipRow">
       <div style="font-size:24px">📦</div>
       <div class="zip-text"><div class="zt">글 파일 ZIP</div><div class="zd">네이버 텍스트 + 티스토리 HTML 다운로드</div></div>
@@ -610,7 +615,8 @@ function loadKeys(){
   if(on){
     const ck=localStorage.getItem('bai_ck')||'';if(ck)document.getElementById('claudeKey').value=ck;
     const tk=localStorage.getItem('bai_tk')||'';if(tk)document.getElementById('tavilyKey').value=tk;
-    if(ck||tk)document.getElementById('ksaved').classList.add('on');
+    const gk=localStorage.getItem('bai_gk')||'';if(gk&&document.getElementById('geminiKey'))document.getElementById('geminiKey').value=gk;
+    if(ck||tk||gk)document.getElementById('ksaved').classList.add('on');
   }
   if(localStorage.getItem('bai_st1'))document.getElementById('st1').value=localStorage.getItem('bai_st1');
   if(localStorage.getItem('bai_st2'))document.getElementById('st2').value=localStorage.getItem('bai_st2');
@@ -620,13 +626,14 @@ function autoSave(){
   if(!document.getElementById('saveTgl').checked)return;
   const ck=document.getElementById('claudeKey').value.trim();if(ck)localStorage.setItem('bai_ck',ck);
   const tk=document.getElementById('tavilyKey').value.trim();if(tk)localStorage.setItem('bai_tk',tk);
-  if(ck||tk)document.getElementById('ksaved').classList.add('on');
+  const gk=document.getElementById('geminiKey')?.value.trim();if(gk)localStorage.setItem('bai_gk',gk);
+  if(ck||tk||gk)document.getElementById('ksaved').classList.add('on');
 }
 function onSaveTgl(){
   const on=document.getElementById('saveTgl').checked;
   localStorage.setItem('bai_save',on?'1':'0');
   if(on){autoSave();toast('✅ API 키 저장됐어요!');}
-  else{localStorage.removeItem('bai_ck');localStorage.removeItem('bai_tk');document.getElementById('ksaved').classList.remove('on');toast('🗑 키 삭제됨');}
+  else{['bai_ck','bai_tk','bai_gk'].forEach(k=>localStorage.removeItem(k));document.getElementById('ksaved').classList.remove('on');toast('🗑 키 삭제됨');}
 }
 
 document.querySelectorAll('.tag').forEach(t=>{
@@ -666,19 +673,19 @@ async function tavilySearch(query){
   }catch(e){return null;}
 }
 
-/* ═══ IMAGE — 서버 경유, 다운로드 완벽 ═══ */
+/* ═══ IMAGE — 서버 경유 (Pollinations → Gemini 자동 폴백) ═══ */
 async function genImg(prompt,style,delay=0){
   if(delay>0)await new Promise(r=>setTimeout(r,delay));
-  // variety면 매번 다른 스타일 랜덤 선택
-  const s=(style==='variety')?['thumbnail','photo','infographic','card'][Math.floor(Math.random()*4)]:style;
+  const s=(style==='variety')?['thumbnail','photo','infographic','card'][Math.floor(Math.random()*4)]:(style||'thumbnail');
+  const geminiKey=document.getElementById('geminiKey')?.value.trim()||'';
   try{
-    const r=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,style:s})});
+    const r=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,style:s,geminiKey})});
     const d=await r.json();
     if(d.base64){
       const bin=atob(d.base64);const arr=new Uint8Array(bin.length);
       for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
       const blob=new Blob([arr],{type:d.mimeType||'image/jpeg'});
-      return{blobUrl:URL.createObjectURL(blob),blob,usedStyle:s};
+      return{blobUrl:URL.createObjectURL(blob),blob,usedStyle:d.usedStyle||s,source:d.source};
     }
     return null;
   }catch(e){return null;}
@@ -876,35 +883,52 @@ JSON만(다른 텍스트 금지):
     let tsMetas=[],nvMetas=[];
     try{const x=iRaw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);const p=JSON.parse(x?x[0]:iRaw);tsMetas=p.tistory||[];nvMetas=p.naver||[];}catch(e){}
 
-    /* ⑤ 이미지 URL 생성 — 플랫폼별 분리 (Pollinations 직접 URL) */
+    /* ⑤ 이미지 생성 — 플랫폼별 분리 (서버 경유 실제 다운로드) */
     const nvGrid=document.getElementById('igrid-nv');
     const tsGrid=document.getElementById('igrid-ts');
     nvGrid.innerHTML='';tsGrid.innerHTML='';
-    function renderImgCards(metas,grid,platform,color,platLabel){
-      metas.forEach((m,i)=>{
-        const imgUrl=makeImgUrl(m.image_prompt,imgStyle);
+    const totalImgs=nvMetas.length+tsMetas.length;
+
+    async function genAndRender(metas,grid,platform,color,platLabel,offset){
+      for(let i=0;i<metas.length;i++){
+        const m=metas[i];const ci=offset+i;
+        setProg(65+Math.floor(ci*30/Math.max(totalImgs,1)),`🖼 ${platLabel} 이미지 ${i+1}/${metas.length} 생성 중...`);
         const fname=seoName(m.seoBase||m.title,m.num||i+1);
         const idx=gd.images.length;
-        gd.images.push({...m,imgUrl,seoBase:m.seoBase||m.title,style:imgStyle,platform});
+        gd.images.push({...m,blobUrl:null,blob:null,seoBase:m.seoBase||m.title,style:imgStyle,platform});
         const card=document.createElement('div');card.className='icard';
         card.innerHTML=`
-          <img class="ipreview" src="${imgUrl}" alt="${m.title}" onclick="previewImg(this)" loading="lazy">
+          <div class="iph" id="ph-${ci}"><div class="spin"></div><div>${platLabel} 이미지 ${i+1} 생성 중...</div></div>
           <div class="ibody">
             <div class="inum" style="color:${color}">${platLabel} 이미지 ${m.num}</div>
             <div class="ititle">${m.title}</div>
+            <div class="istyle" id="ist-${ci}">${imgStyle}</div>
             <div class="ifname">${fname}</div>
             <div class="icaps"><div><div class="icl">${platLabel}</div><div class="icv">${m.caption}</div></div></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px">
-              <a href="${imgUrl}" target="_blank" class="btn-sm" style="justify-content:center;text-decoration:none">🖼 열기</a>
-              <button class="btn-sm" style="justify-content:center" onclick="retryImg(${idx},this)">🔄 재생성</button>
-            </div>
+            <div id="act-${ci}"></div>
           </div>`;
         grid.appendChild(card);
-      });
+        const result=await genImg(m.image_prompt,imgStyle,i===0&&offset===0?0:600);
+        const ph=document.getElementById(`ph-${ci}`);
+        const act=document.getElementById(`act-${ci}`);
+        if(result?.blobUrl){
+          if(result.usedStyle&&result.usedStyle!==imgStyle){const ist=document.getElementById(`ist-${ci}`);if(ist)ist.textContent=result.usedStyle+(result.source==='gemini'?' ✦Gemini':'');}
+          ph.outerHTML=`<img class="ipreview" src="${result.blobUrl}" alt="${m.title}" onclick="previewImg(this)">`;
+          gd.images[idx].blobUrl=result.blobUrl;gd.images[idx].blob=result.blob;gd.images[idx].style=result.usedStyle||imgStyle;
+          act.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            <button class="btn-sm" style="justify-content:center;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--gr)" onclick="dlImg(${idx},this)">💾 다운로드</button>
+            <button class="btn-sm" style="justify-content:center" onclick="retryImg(${idx},this)">🔄 재생성</button>
+          </div>`;
+        }else{
+          ph.outerHTML=`<div class="iph" style="font-size:11px;text-align:center;color:var(--tx3)">생성 실패</div>`;
+          act.innerHTML=`<button class="btn-sm" style="width:100%;justify-content:center" onclick="retryImg(${idx},this)">🔄 재시도</button>`;
+        }
+      }
     }
-    renderImgCards(nvMetas,nvGrid,'nv','var(--nv)','네이버');
-    renderImgCards(tsMetas,tsGrid,'ts','var(--ts)','티스토리');
-    setProg(95,'🖼 이미지 URL 생성 완료');
+    await genAndRender(nvMetas,nvGrid,'nv','var(--nv)','네이버',0);
+    await genAndRender(tsMetas,tsGrid,'ts','var(--ts)','티스토리',nvMetas.length);
+    setProg(96,'💾 바탕화면 폴더 저장 중...');
+    await saveToDesktop();
 
     /* 완료 */
     setProg(100,'✅ 완료!');
@@ -925,26 +949,72 @@ JSON만(다른 텍스트 금지):
   }
 }
 
-/* ═══ IMAGE URL (Pollinations 직접) ═══ */
-function makeImgUrl(prompt,style){
-  const styleDesc={thumbnail:'professional eye-catching blog thumbnail, photography mixed with graphic overlay',photo:'realistic travel/scene photography, natural lighting, no text',infographic:'clean flat infographic, data visualization, icons, pastel colors, white background',card:'bold card news, strong typography, gradient background, social media style',variety:'mixed media, dynamic composition, editorial style'};
-  const s=(style==='variety')?['thumbnail','photo','infographic','card'][Math.floor(Math.random()*4)]:(style||'thumbnail');
-  const suffix=styleDesc[s]||styleDesc['thumbnail'];
-  const seed=Date.now()+Math.floor(Math.random()*99999);
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt+', '+suffix)}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
+/* ═══ RETRY / DL IMAGE ═══ */
+async function retryImg(idx,btn){
+  const img=gd.images[idx];if(!img?.image_prompt)return;
+  btn.disabled=true;
+  const card=btn.closest('.icard');
+  const prev=card.querySelector('img.ipreview,.iph');
+  const ld=document.createElement('div');ld.className='iph';ld.innerHTML='<div class="spin"></div><div>재생성 중...</div>';
+  if(prev)prev.replaceWith(ld);else card.prepend(ld);
+  const result=await genImg(img.image_prompt,img.style||imgStyle);
+  if(result?.blobUrl){
+    if(gd.images[idx].blobUrl)URL.revokeObjectURL(gd.images[idx].blobUrl);
+    gd.images[idx].blobUrl=result.blobUrl;gd.images[idx].blob=result.blob;
+    ld.outerHTML=`<img class="ipreview" src="${result.blobUrl}" alt="${img.title}" onclick="previewImg(this)">`;
+    const bc=btn.closest('[style*="grid"]')||btn.parentElement;
+    bc.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+      <button class="btn-sm" style="justify-content:center;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--gr)" onclick="dlImg(${idx},this)">💾 다운로드</button>
+      <button class="btn-sm" style="justify-content:center" onclick="retryImg(${idx},this)">🔄 재생성</button>
+    </div>`;
+    toast('✅ 재생성 완료!');
+  }else{
+    ld.outerHTML=`<div class="iph" style="font-size:11px;text-align:center;color:var(--tx3)">생성 실패</div>`;
+    btn.disabled=false;toast('❌ 실패');
+  }
 }
 
-/* ═══ RETRY IMAGE ═══ */
-function retryImg(idx,btn){
-  const img=gd.images[idx];if(!img?.image_prompt)return;
-  const newUrl=makeImgUrl(img.image_prompt,img.style||imgStyle);
-  gd.images[idx].imgUrl=newUrl;
-  const card=btn.closest('.icard');
-  const prev=card.querySelector('img.ipreview');
-  if(prev)prev.src=newUrl;
-  const openA=card.querySelector('a.btn-sm');
-  if(openA)openA.href=newUrl;
-  toast('🔄 새 이미지 요청됨 — 잠시 후 로드됩니다');
+async function dlImg(idx,btn){
+  const img=gd.images[idx];if(!img)return;
+  const fname=seoName(img.seoBase||img.title,img.num||idx+1);
+  if(img.blobUrl){
+    const a=document.createElement('a');a.href=img.blobUrl;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('💾 저장: '+fname);return;
+  }
+  if(btn){btn.textContent='⏳...';btn.disabled=true;}
+  const result=await genImg(img.image_prompt,img.style||imgStyle);
+  if(result?.blobUrl){
+    gd.images[idx].blobUrl=result.blobUrl;gd.images[idx].blob=result.blob;
+    const a=document.createElement('a');a.href=result.blobUrl;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('💾 저장: '+fname);
+  }else toast('❌ 다운로드 실패');
+  if(btn){btn.textContent='💾 다운로드';btn.disabled=false;}
+}
+
+/* ═══ 바탕화면 자동 저장 ═══ */
+async function saveToDesktop(){
+  if(!gd.ts&&!gd.nv)return;
+  try{
+    const imgData=[];
+    for(let i=0;i<gd.images.length;i++){
+      const img=gd.images[i];
+      if(img.blob){
+        const ab=await img.blob.arrayBuffer();
+        const bytes=new Uint8Array(ab);let bin='';
+        for(let j=0;j<bytes.length;j++)bin+=String.fromCharCode(bytes[j]);
+        const base64=btoa(bin);
+        const fname=seoName(img.seoBase||img.title,img.num||i+1);
+        imgData.push({base64,filename:`${img.platform==='nv'?'네이버':'티스토리'}/${fname}`});
+      }
+    }
+    const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nv:gd.nv,ts:gd.ts,images:imgData})});
+    const d=await r.json();
+    if(d.success){
+      toast('✅ 바탕화면 블로그 폴더 저장 완료! 이미지 '+imgData.length+'개');
+      addLog('💾 바탕화면 저장 완료: '+d.path,'lok');
+    }
+  }catch(e){/* 서버 미실행시 무시 */}
 }
 
 function previewImg(el){
@@ -965,13 +1035,18 @@ async function downloadZip(){
     const folder=zip.folder(`BlogAI_${date}`);
     if(gd.ts)folder.file('티스토리_HTML.html',gd.ts);
     if(gd.nv)folder.file('네이버_텍스트.txt',gd.nv);
-    let guide='이미지 URL 가이드\n'+'='.repeat(40)+'\n\n';
+    const tsImgF=folder.folder('이미지/티스토리');
+    const nvImgF=folder.folder('이미지/네이버');
+    let guide='이미지 가이드\n'+'='.repeat(40)+'\n\n';
     for(let i=0;i<gd.images.length;i++){
       const img=gd.images[i];
       const fname=seoName(img.seoBase||img.title,img.num||i+1);
-      guide+=`[${img.platform==='nv'?'네이버':'티스토리'}] 이미지 ${img.num}: ${img.title}\n스타일: ${img.style}\n파일명: ${fname}\n캡션: ${img.caption||''}\nURL: ${img.imgUrl||''}\n\n${'─'.repeat(36)}\n\n`;
+      const pf=img.platform==='nv'?nvImgF:tsImgF;
+      if(img.blob){const ab=await img.blob.arrayBuffer();pf.file(fname,ab);}
+      else if(img.blobUrl){try{const r=await fetch(img.blobUrl);const b=await r.blob();const ab=await b.arrayBuffer();pf.file(fname,ab);}catch(e){}}
+      guide+=`[${img.platform==='nv'?'네이버':'티스토리'}] 이미지 ${img.num}: ${img.title}\n스타일: ${img.style}\n파일명: ${fname}\n캡션: ${img.caption||''}\n\n${'─'.repeat(36)}\n\n`;
     }
-    folder.file('이미지_URL_가이드.txt',guide);
+    folder.file('이미지_가이드.txt',guide);
     const blob=await zip.generateAsync({type:'blob'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`BlogAI_${date}.zip`;a.click();

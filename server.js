@@ -59,7 +59,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && req.url === '/api/image') {
-    const { prompt, style } = await readBody(req);
+    const { prompt, style, geminiKey } = await readBody(req);
     const styleSuffix = {
       thumbnail: 'professional blog thumbnail, eye-catching, photography mixed with graphic overlay, high quality',
       photo:     'realistic travel photography, natural golden hour lighting, vivid landscape, no text no logo',
@@ -69,15 +69,76 @@ const server = http.createServer(async (req, res) => {
     };
     const s = (style === 'variety') ? ['thumbnail','photo','infographic','card'][Math.floor(Math.random()*4)] : (style || 'thumbnail');
     const suffix = styleSuffix[s] || styleSuffix['thumbnail'];
-    const encoded = encodeURIComponent(`${prompt}, ${suffix}`);
-    const seed = Date.now() + Math.floor(Math.random() * 99999);
-    const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
+    const fullPrompt = `${prompt}, ${suffix}`;
+
+    // ① Pollinations 시도 (25초 타임아웃)
     try {
-      const imgRes = await fetch(url);
-      if (!imgRes.ok) throw new Error('이미지 생성 실패');
-      const buffer = await imgRes.buffer();
+      const encoded = encodeURIComponent(fullPrompt);
+      const seed = Date.now() + Math.floor(Math.random() * 99999);
+      const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 25000);
+      const imgRes = await fetch(url, { signal: controller.signal });
+      clearTimeout(tid);
+      if (imgRes.ok) {
+        const buffer = await imgRes.buffer();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ base64: buffer.toString('base64'), mimeType: 'image/jpeg', usedStyle: s, source: 'pollinations' }));
+        return;
+      }
+    } catch(e) { /* Pollinations 실패 → Gemini로 폴백 */ }
+
+    // ② Gemini Imagen 폴백
+    if (geminiKey) {
+      try {
+        const gRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiKey}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instances: [{ prompt: fullPrompt }], parameters: { sampleCount: 1, aspectRatio: '1:1' } }) }
+        );
+        const gData = await gRes.json();
+        const b64 = gData.predictions?.[0]?.bytesBase64Encoded;
+        if (b64) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ base64: b64, mimeType: 'image/png', usedStyle: s, source: 'gemini' }));
+          return;
+        }
+      } catch(e) { /* Gemini도 실패 */ }
+    }
+
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: '이미지 생성 실패 (Pollinations & Gemini 모두 실패)' }));
+    return;
+  }
+
+  // ── 바탕화면 자동 저장 ──
+  if (req.method === 'POST' && req.url === '/api/save') {
+    const { nv, ts, images } = await readBody(req);
+    const homeDir = require('os').homedir();
+    const blogDir = path.join(homeDir, 'Desktop', '블로그');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateFolder = path.join(blogDir, dateStr);
+    try {
+      if (!fs.existsSync(blogDir)) fs.mkdirSync(blogDir, { recursive: true });
+      if (!fs.existsSync(dateFolder)) fs.mkdirSync(dateFolder, { recursive: true });
+      const saved = [];
+      if (nv) { fs.writeFileSync(path.join(dateFolder, '네이버_글.txt'), nv, 'utf8'); saved.push('네이버_글.txt'); }
+      if (ts) { fs.writeFileSync(path.join(dateFolder, '티스토리_글.html'), ts, 'utf8'); saved.push('티스토리_글.html'); }
+      if (Array.isArray(images) && images.length > 0) {
+        const imgRoot = path.join(dateFolder, '이미지');
+        if (!fs.existsSync(imgRoot)) fs.mkdirSync(imgRoot, { recursive: true });
+        for (const img of images) {
+          if (img.base64 && img.filename) {
+            const imgFile = path.join(imgRoot, img.filename);
+            const imgDir = path.dirname(imgFile);
+            if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
+            fs.writeFileSync(imgFile, Buffer.from(img.base64, 'base64'));
+            saved.push('이미지/' + img.filename);
+          }
+        }
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ base64: buffer.toString('base64'), mimeType: 'image/jpeg', usedStyle: s }));
+      res.end(JSON.stringify({ success: true, path: dateFolder, saved }));
     } catch(e) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: e.message }));
