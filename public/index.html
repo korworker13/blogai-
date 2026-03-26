@@ -171,6 +171,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .ifname{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--tl);margin-bottom:5px}
 .icaps{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px;margin-bottom:7px}
 .icl{color:var(--tx3);font-size:10px;margin-bottom:1px}.icv{color:var(--tx2)}
+.save-banner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:#d97706;margin-bottom:12px;line-height:1.7}
+.img-sec{margin-bottom:16px}.img-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
 
 /* FIX PANEL */
 .fix-wrap{display:flex;flex-direction:column;gap:11px}
@@ -469,13 +471,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 
   <!-- 이미지 -->
   <div class="pane" id="pane-img">
+    <div class="save-banner">💡 <b>이미지 저장 방법:</b> 아래 <b>열기</b> 버튼 클릭 → 새 탭에서 이미지 완전히 로드된 후 → <b>우클릭 → 이미지를 다른 이름으로 저장</b></div>
     <div class="zip-row" id="zipRow">
       <div style="font-size:24px">📦</div>
-      <div class="zip-text"><div class="zt">전체 패키지 ZIP</div><div class="zd">HTML + 텍스트 + 이미지 묶음 다운로드</div></div>
+      <div class="zip-text"><div class="zt">글 파일 ZIP</div><div class="zd">네이버 텍스트 + 티스토리 HTML 다운로드</div></div>
       <button class="btn-zip" onclick="downloadZip()">ZIP 다운로드</button>
     </div>
-    <div class="igrid" id="igrid">
-      <div style="grid-column:1/-1;color:var(--tx3);font-size:13px;text-align:center;padding:40px 0">생성하면 이미지가 여기에 나타나요.</div>
+    <div class="img-sec">
+      <div class="img-sec-hdr"><div class="pbadge nvb">📱 네이버 블로그 이미지</div></div>
+      <div class="igrid" id="igrid-nv"><div style="grid-column:1/-1;color:var(--tx3);font-size:13px;text-align:center;padding:30px 0">생성하면 이미지가 여기에 나타나요.</div></div>
+    </div>
+    <div class="img-sec">
+      <div class="img-sec-hdr"><div class="pbadge tsb">✈️ 티스토리 이미지</div></div>
+      <div class="igrid" id="igrid-ts"><div style="grid-column:1/-1;color:var(--tx3);font-size:13px;text-align:center;padding:30px 0">생성하면 이미지가 여기에 나타나요.</div></div>
     </div>
   </div>
 
@@ -851,74 +859,59 @@ HTML 태그 없이 순수 텍스트, 존댓말 구어체${nvMemo}${nvCtx}`,
     const sdesc=styleDesc[imgStyle]||styleDesc['thumbnail'];
 
     const iRaw=await claude(
-`블로그 글 기반 이미지 ${imgCount}개 기획.
+`블로그 글 기반 이미지 기획 — 티스토리용 ${imgCount}개 + 네이버용 ${imgCount}개 (총 ${imgCount*2}개).
 [티스토리 키워드]: ${fTsKw}
 [네이버 키워드]: ${fNvKw}
 [티스토리 글]: ${tsPreview}
 [네이버 글]: ${nvPreview}
 [이미지 스타일]: ${imgStyle} — ${sdesc}
 
-각 이미지: 글의 다른 섹션 담당 (도입/본문1/본문2/마무리)
+티스토리: 여행·현장감 위주 이미지. 네이버: 정보성·뉴스 감성 이미지.
+각 세트: 글의 다른 섹션 담당 (도입/본문1/본문2/마무리).
 스타일 힌트를 image_prompt에 충실히 반영.
-캡션 플랫폼별 다르게.
-JSON 배열만:
-[{"num":1,"title":"제목20자내","image_prompt":"[${sdesc}], [글 내용과 일치하는 구체적 영어 설명]","seoBase":"[영어소문자-하이픈 8자내]","caption_tistory":"40자내","caption_naver":"40자내"}]`,
-      null,1800
+JSON만(다른 텍스트 금지):
+{"tistory":[{"num":1,"title":"제목20자내","image_prompt":"[${sdesc}], [티스토리 글 내용과 일치하는 구체적 영어 설명]","seoBase":"영어소문자-하이픈-8자내","caption":"티스토리용 40자내 캡션"}],"naver":[{"num":1,"title":"제목20자내","image_prompt":"[${sdesc}], [네이버 글 내용과 일치하는 구체적 영어 설명]","seoBase":"영어소문자-하이픈-8자내","caption":"네이버용 40자내 캡션"}]}`,
+      null,2200
     );
-    let metas=[];
-    try{const x=iRaw.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);metas=JSON.parse(x?x[0]:iRaw);}catch(e){}
+    let tsMetas=[],nvMetas=[];
+    try{const x=iRaw.replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);const p=JSON.parse(x?x[0]:iRaw);tsMetas=p.tistory||[];nvMetas=p.naver||[];}catch(e){}
 
-    /* ⑤ 이미지 생성 — 서버 경유 */
-    const grid=document.getElementById('igrid');
-    grid.innerHTML='';
-    for(let i=0;i<metas.length;i++){
-      const m=metas[i];
-      setProg(65+Math.floor(i*28/metas.length),`🖼 이미지 ${i+1}/${metas.length} 생성 중...`);
-      const card=document.createElement('div');card.className='icard';
-      const fname=seoName(m.seoBase||m.title,m.num||i+1);
-      card.innerHTML=`
-        <div class="iph" id="ph-${i}"><div class="spin"></div><div>생성 중...</div></div>
-        <div class="ibody">
-          <div class="inum">이미지 ${m.num}</div>
-          <div class="ititle">${m.title}</div>
-          <div class="istyle" id="ist-${i}">${imgStyle}</div>
-          <div class="ifname">${fname}</div>
-          <div class="icaps">
-            <div><div class="icl">티스토리</div><div class="icv">${m.caption_tistory}</div></div>
-            <div><div class="icl">네이버</div><div class="icv">${m.caption_naver}</div></div>
-          </div>
-          <div id="act-${i}"></div>
-        </div>`;
-      grid.appendChild(card);
-
-      const result=await genImg(m.image_prompt,imgStyle,i*1500);
-      const ph=document.getElementById(`ph-${i}`);
-      const act=document.getElementById(`act-${i}`);
-      if(result?.blobUrl){
-        if(result.usedStyle&&result.usedStyle!==imgStyle){
-          const ist=document.getElementById(`ist-${i}`);if(ist)ist.textContent=result.usedStyle;
-        }
-        ph.outerHTML=`<img class="ipreview" src="${result.blobUrl}" alt="${m.title}" onclick="previewImg(this)">`;
+    /* ⑤ 이미지 URL 생성 — 플랫폼별 분리 (Pollinations 직접 URL) */
+    const nvGrid=document.getElementById('igrid-nv');
+    const tsGrid=document.getElementById('igrid-ts');
+    nvGrid.innerHTML='';tsGrid.innerHTML='';
+    function renderImgCards(metas,grid,platform,color,platLabel){
+      metas.forEach((m,i)=>{
+        const imgUrl=makeImgUrl(m.image_prompt,imgStyle);
+        const fname=seoName(m.seoBase||m.title,m.num||i+1);
         const idx=gd.images.length;
-        gd.images.push({...m,blobUrl:result.blobUrl,blob:result.blob,seoBase:m.seoBase||m.title,style:result.usedStyle||imgStyle});
-        act.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-          <button class="btn-sm" style="justify-content:center;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--gr)" onclick="dlImg(${idx},this)">💾 다운로드</button>
-          <button class="btn-sm" style="justify-content:center" onclick="retryImg(${idx},this)">🔄 재생성</button>
-        </div>`;
-      }else{
-        ph.outerHTML=`<div class="iph" style="font-size:11px;text-align:center;color:var(--tx3)">생성 실패</div>`;
-        const idx=gd.images.length;
-        gd.images.push({...m,blobUrl:null,blob:null,seoBase:m.seoBase||m.title,style:imgStyle});
-        act.innerHTML=`<button class="btn-sm" style="width:100%;justify-content:center" onclick="retryImg(${idx},this)">🔄 재시도</button>`;
-      }
+        gd.images.push({...m,imgUrl,seoBase:m.seoBase||m.title,style:imgStyle,platform});
+        const card=document.createElement('div');card.className='icard';
+        card.innerHTML=`
+          <img class="ipreview" src="${imgUrl}" alt="${m.title}" onclick="previewImg(this)" loading="lazy">
+          <div class="ibody">
+            <div class="inum" style="color:${color}">${platLabel} 이미지 ${m.num}</div>
+            <div class="ititle">${m.title}</div>
+            <div class="ifname">${fname}</div>
+            <div class="icaps"><div><div class="icl">${platLabel}</div><div class="icv">${m.caption}</div></div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px">
+              <a href="${imgUrl}" target="_blank" class="btn-sm" style="justify-content:center;text-decoration:none">🖼 열기</a>
+              <button class="btn-sm" style="justify-content:center" onclick="retryImg(${idx},this)">🔄 재생성</button>
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
     }
+    renderImgCards(nvMetas,nvGrid,'nv','var(--nv)','네이버');
+    renderImgCards(tsMetas,tsGrid,'ts','var(--ts)','티스토리');
+    setProg(95,'🖼 이미지 URL 생성 완료');
 
     /* 완료 */
     setProg(100,'✅ 완료!');
     document.getElementById('zipRow').classList.add('on');
     showTab('nv');
     if(window.innerWidth<=768)mv('r');
-    toast('🎉 완료! 네이버 + 티스토리 + 이미지 생성됨');
+    toast(`🎉 완료! 이미지 티스토리 ${tsMetas.length}장 + 네이버 ${nvMetas.length}장 생성됨`);
     autoSave();
     saveHist(fNvKw,fTsKw,gd.ts,gd.nv,gd.images);
     addLog(`✅ 완료 NV:${fNvKw} / TS:${fTsKw}`,'lok');
@@ -932,46 +925,26 @@ JSON 배열만:
   }
 }
 
-/* ═══ RETRY / DL IMAGE ═══ */
-async function retryImg(idx,btn){
-  const img=gd.images[idx];if(!img?.image_prompt)return;
-  btn.disabled=true;
-  const card=btn.closest('.icard');
-  const prev=card.querySelector('img.ipreview,.iph');
-  const ld=document.createElement('div');ld.className='iph';ld.innerHTML='<div class="spin"></div><div>재생성 중...</div>';
-  if(prev)prev.replaceWith(ld);else card.prepend(ld);
-  const result=await genImg(img.image_prompt,img.style||imgStyle);
-  if(result?.blobUrl){
-    if(gd.images[idx].blobUrl)URL.revokeObjectURL(gd.images[idx].blobUrl);
-    gd.images[idx].blobUrl=result.blobUrl;gd.images[idx].blob=result.blob;
-    ld.outerHTML=`<img class="ipreview" src="${result.blobUrl}" alt="${img.title}" onclick="previewImg(this)">`;
-    const bc=btn.closest('[style*="grid"]')||btn.parentElement;
-    bc.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
-      <button class="btn-sm" style="justify-content:center;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--gr)" onclick="dlImg(${idx},this)">💾 다운로드</button>
-      <button class="btn-sm" style="justify-content:center" onclick="retryImg(${idx},this)">🔄 재생성</button>
-    </div>`;
-    toast('✅ 재생성 완료!');
-  }else{
-    ld.outerHTML=`<div class="iph" style="font-size:11px;text-align:center;color:var(--tx3)">생성 실패</div>`;
-    btn.disabled=false;toast('❌ 실패');
-  }
+/* ═══ IMAGE URL (Pollinations 직접) ═══ */
+function makeImgUrl(prompt,style){
+  const styleDesc={thumbnail:'professional eye-catching blog thumbnail, photography mixed with graphic overlay',photo:'realistic travel/scene photography, natural lighting, no text',infographic:'clean flat infographic, data visualization, icons, pastel colors, white background',card:'bold card news, strong typography, gradient background, social media style',variety:'mixed media, dynamic composition, editorial style'};
+  const s=(style==='variety')?['thumbnail','photo','infographic','card'][Math.floor(Math.random()*4)]:(style||'thumbnail');
+  const suffix=styleDesc[s]||styleDesc['thumbnail'];
+  const seed=Date.now()+Math.floor(Math.random()*99999);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt+', '+suffix)}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
 }
 
-async function dlImg(idx,btn){
-  const img=gd.images[idx];if(!img)return;
-  const fname=seoName(img.seoBase||img.title,img.num||idx+1);
-  if(img.blobUrl){
-    const a=document.createElement('a');a.href=img.blobUrl;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
-    toast('💾 저장: '+fname);return;
-  }
-  if(btn){btn.textContent='⏳...';btn.disabled=true;}
-  const result=await genImg(img.image_prompt,img.style||imgStyle);
-  if(result?.blobUrl){
-    gd.images[idx].blobUrl=result.blobUrl;
-    const a=document.createElement('a');a.href=result.blobUrl;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);
-    toast('💾 저장: '+fname);
-  }else toast('❌ 다운로드 실패');
-  if(btn){btn.textContent='💾 다운로드';btn.disabled=false;}
+/* ═══ RETRY IMAGE ═══ */
+function retryImg(idx,btn){
+  const img=gd.images[idx];if(!img?.image_prompt)return;
+  const newUrl=makeImgUrl(img.image_prompt,img.style||imgStyle);
+  gd.images[idx].imgUrl=newUrl;
+  const card=btn.closest('.icard');
+  const prev=card.querySelector('img.ipreview');
+  if(prev)prev.src=newUrl;
+  const openA=card.querySelector('a.btn-sm');
+  if(openA)openA.href=newUrl;
+  toast('🔄 새 이미지 요청됨 — 잠시 후 로드됩니다');
 }
 
 function previewImg(el){
@@ -992,16 +965,13 @@ async function downloadZip(){
     const folder=zip.folder(`BlogAI_${date}`);
     if(gd.ts)folder.file('티스토리_HTML.html',gd.ts);
     if(gd.nv)folder.file('네이버_텍스트.txt',gd.nv);
-    const imgF=folder.folder('이미지');
-    let guide='이미지 가이드\n'+'='.repeat(40)+'\n\n';
+    let guide='이미지 URL 가이드\n'+'='.repeat(40)+'\n\n';
     for(let i=0;i<gd.images.length;i++){
       const img=gd.images[i];
       const fname=seoName(img.seoBase||img.title,img.num||i+1);
-      if(img.blob){const ab=await img.blob.arrayBuffer();imgF.file(fname,ab);}
-      else if(img.blobUrl){try{const r=await fetch(img.blobUrl);const b=await r.blob();const ab=await b.arrayBuffer();imgF.file(fname,ab);}catch(e){}}
-      guide+=`이미지 ${img.num}: ${img.title}\n스타일: ${img.style}\n파일명: ${fname}\n티스토리: ${img.caption_tistory}\n네이버: ${img.caption_naver}\n\n${'─'.repeat(36)}\n\n`;
+      guide+=`[${img.platform==='nv'?'네이버':'티스토리'}] 이미지 ${img.num}: ${img.title}\n스타일: ${img.style}\n파일명: ${fname}\n캡션: ${img.caption||''}\nURL: ${img.imgUrl||''}\n\n${'─'.repeat(36)}\n\n`;
     }
-    imgF.file('가이드.txt',guide);
+    folder.file('이미지_URL_가이드.txt',guide);
     const blob=await zip.generateAsync({type:'blob'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=`BlogAI_${date}.zip`;a.click();
