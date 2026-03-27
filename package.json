@@ -1,0 +1,7 @@
+{
+  "name": "blogai-v10-final",
+  "version": "10.0.0",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
