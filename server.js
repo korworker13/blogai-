@@ -1,11 +1,13 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
+const https = require('https');
+const { exec } = require('child_process');
 
 const PORT = 3000;
+const SAVE_BASE = 'C:\\Users\\GKL\\Desktop\\블로그';
 
-async function readBody(req) {
+function readBody(req) {
   return new Promise((resolve) => {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -13,162 +15,158 @@ async function readBody(req) {
   });
 }
 
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function httpsPost(hostname, path, headers, postData) {
+  return new Promise((resolve, reject) => {
+    const options = { hostname, port: 443, path, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData), ...headers } };
+    const r = https.request(options, (resp) => {
+      let data = '';
+      resp.on('data', chunk => data += chunk);
+      resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
+    });
+    r.on('error', reject);
+    r.write(postData); r.end();
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-  // ── API 라우트 ──
+  // Claude API
   if (req.method === 'POST' && req.url === '/api/claude') {
     const { apiKey, model, max_tokens, messages, system } = await readBody(req);
     const key = apiKey || process.env.CLAUDE_API_KEY;
+    if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'API 키 없음' })); return; }
     try {
       const body = { model: model || 'claude-sonnet-4-20250514', max_tokens: max_tokens || 5000, messages };
       if (system) body.system = system;
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify(body)
-      });
-      const data = await r.json();
+      const result = await httpsPost('api.anthropic.com', '/v1/messages',
+        { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, JSON.stringify(body));
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(data));
-    } catch(e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
+      res.end(JSON.stringify(result));
+    } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
     return;
   }
 
+  // Tavily API
   if (req.method === 'POST' && req.url === '/api/tavily') {
     const { apiKey, query } = await readBody(req);
     const key = apiKey || process.env.TAVILY_API_KEY;
+    if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Tavily 키 없음' })); return; }
     try {
-      const r = await fetch('https://api.tavily.com/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: key, query, search_depth: 'advanced', max_results: 8, include_answer: true, days: 3 })
-      });
-      const data = await r.json();
+      const result = await httpsPost('api.tavily.com', '/search', {},
+        JSON.stringify({ api_key: key, query, search_depth: 'advanced', max_results: 8, include_answer: true, days: 3 }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(data));
-    } catch(e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
+      res.end(JSON.stringify(result));
+    } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/api/image') {
-    const { prompt, style, geminiKey } = await readBody(req);
-    const styleSuffix = {
-      thumbnail: 'professional blog thumbnail, eye-catching, photography mixed with graphic overlay, high quality',
-      photo:     'realistic travel photography, natural golden hour lighting, vivid landscape, no text no logo',
-      infographic: 'clean Korean infographic, flat illustration, bold data visualization, pastel colors, white background',
-      card:      'Korean card news style, bold typography, strong gradient background, social media card design',
-      variety:   'mixed media blog image, dynamic composition, vibrant colors, editorial style'
-    };
-    const s = (style === 'variety') ? ['thumbnail','photo','infographic','card'][Math.floor(Math.random()*4)] : (style || 'thumbnail');
-    const suffix = styleSuffix[s] || styleSuffix['thumbnail'];
-    const fullPrompt = `${prompt}, ${suffix}`;
+  // ★ 저장 API — 글 + 이미지 프롬프트 파일 저장
+  if (req.method === 'POST' && req.url === '/api/save-all') {
+    const { nv, ts, nvPrompts, tsPrompts } = await readBody(req);
+    const today = new Date().toISOString().slice(0, 10);
+    const saveDir = path.join(SAVE_BASE, today);
 
-    // ① Pollinations 시도 (25초 타임아웃)
     try {
-      const encoded = encodeURIComponent(fullPrompt);
-      const seed = Date.now() + Math.floor(Math.random() * 99999);
-      const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true&seed=${seed}`;
-      const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 25000);
-      const imgRes = await fetch(url, { signal: controller.signal });
-      clearTimeout(tid);
-      if (imgRes.ok) {
-        const buffer = await imgRes.buffer();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ base64: buffer.toString('base64'), mimeType: 'image/jpeg', usedStyle: s, source: 'pollinations' }));
-        return;
-      }
-    } catch(e) { /* Pollinations 실패 → Gemini로 폴백 */ }
-
-    // ② Gemini Imagen 폴백
-    if (geminiKey) {
-      try {
-        const gRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${geminiKey}`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ instances: [{ prompt: fullPrompt }], parameters: { sampleCount: 1, aspectRatio: '1:1' } }) }
-        );
-        const gData = await gRes.json();
-        const b64 = gData.predictions?.[0]?.bytesBase64Encoded;
-        if (b64) {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ base64: b64, mimeType: 'image/png', usedStyle: s, source: 'gemini' }));
-          return;
-        }
-      } catch(e) { /* Gemini도 실패 */ }
-    }
-
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: '이미지 생성 실패 (Pollinations & Gemini 모두 실패)' }));
-    return;
-  }
-
-  // ── 바탕화면 자동 저장 ──
-  if (req.method === 'POST' && req.url === '/api/save') {
-    const { nv, ts, images } = await readBody(req);
-    const homeDir = require('os').homedir();
-    const blogDir = path.join(homeDir, 'Desktop', '블로그');
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const dateFolder = path.join(blogDir, dateStr);
-    try {
-      if (!fs.existsSync(blogDir)) fs.mkdirSync(blogDir, { recursive: true });
-      if (!fs.existsSync(dateFolder)) fs.mkdirSync(dateFolder, { recursive: true });
+      ensureDir(saveDir);
       const saved = [];
-      if (nv) { fs.writeFileSync(path.join(dateFolder, '네이버_글.txt'), nv, 'utf8'); saved.push('네이버_글.txt'); }
-      if (ts) { fs.writeFileSync(path.join(dateFolder, '티스토리_글.html'), ts, 'utf8'); saved.push('티스토리_글.html'); }
-      if (Array.isArray(images) && images.length > 0) {
-        const imgRoot = path.join(dateFolder, '이미지');
-        if (!fs.existsSync(imgRoot)) fs.mkdirSync(imgRoot, { recursive: true });
-        for (const img of images) {
-          if (img.base64 && img.filename) {
-            const imgFile = path.join(imgRoot, img.filename);
-            const imgDir = path.dirname(imgFile);
-            if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
-            fs.writeFileSync(imgFile, Buffer.from(img.base64, 'base64'));
-            saved.push('이미지/' + img.filename);
-          }
-        }
+
+      // 네이버 글 저장
+      if (nv) {
+        fs.writeFileSync(path.join(saveDir, '네이버_글.txt'), nv, 'utf8');
+        saved.push('✅ 네이버_글.txt');
       }
+
+      // 티스토리 글 저장
+      if (ts) {
+        fs.writeFileSync(path.join(saveDir, '티스토리_글.html'), ts, 'utf8');
+        saved.push('✅ 티스토리_글.html');
+      }
+
+      // 이미지 프롬프트 가이드 저장
+      if (nvPrompts || tsPrompts) {
+        let guide = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        guide += '  BlogAI 이미지 프롬프트 가이드\n';
+        guide += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        guide += '사용 방법:\n';
+        guide += '  미드저니: /imagine [영어 프롬프트] 입력\n';
+        guide += '  ChatGPT: "이 이미지를 만들어줘" + 한국어 프롬프트\n';
+        guide += '  Canva AI: 한국어 프롬프트 입력\n\n';
+
+        if (nvPrompts && nvPrompts.length > 0) {
+          guide += '━━ 📱 네이버 블로그 이미지 ━━\n\n';
+          nvPrompts.forEach((p, i) => {
+            guide += `[이미지 ${i+1}] ${p.title}\n`;
+            guide += `파일명: ${p.filename}\n`;
+            guide += `캡션: ${p.caption}\n`;
+            guide += `\n▶ 영어 프롬프트 (미드저니/ChatGPT):\n${p.prompt_en}\n`;
+            guide += `\n▶ 한국어 프롬프트 (Canva/네이버AI):\n${p.prompt_ko}\n`;
+            guide += '\n' + '─'.repeat(40) + '\n\n';
+          });
+        }
+
+        if (tsPrompts && tsPrompts.length > 0) {
+          guide += '━━ ✈️ 티스토리 블로그 이미지 ━━\n\n';
+          tsPrompts.forEach((p, i) => {
+            guide += `[이미지 ${i+1}] ${p.title}\n`;
+            guide += `파일명: ${p.filename}\n`;
+            guide += `캡션: ${p.caption}\n`;
+            guide += `\n▶ 영어 프롬프트 (미드저니/ChatGPT):\n${p.prompt_en}\n`;
+            guide += `\n▶ 한국어 프롬프트 (Canva/네이버AI):\n${p.prompt_ko}\n`;
+            guide += '\n' + '─'.repeat(40) + '\n\n';
+          });
+        }
+
+        fs.writeFileSync(path.join(saveDir, '이미지_프롬프트_가이드.txt'), guide, 'utf8');
+        saved.push('✅ 이미지_프롬프트_가이드.txt');
+      }
+
+      // 탐색기 자동 열기
+      exec(`explorer "${saveDir}"`);
+      console.log(`\n🎉 저장 완료! → ${saveDir}\n`);
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, path: dateFolder, saved }));
+      res.end(JSON.stringify({ folder: saveDir, saved }));
+
     } catch(e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      console.error('저장 오류:', e);
+      res.writeHead(500); res.end(JSON.stringify({ error: e.message }));
     }
     return;
   }
 
-  // ── 정적 파일 서빙 ──
+  // 정적 파일 서빙
   let filePath = req.url === '/' ? '/public/index.html' : req.url;
-  if (!filePath.startsWith('/public')) filePath = '/public' + filePath;
+  if (!filePath.startsWith('/public') && !filePath.startsWith('/api')) filePath = '/public' + filePath;
   const fullPath = path.join(__dirname, filePath);
 
   fs.readFile(fullPath, (err, data) => {
     if (err) {
-      // SPA fallback
       fs.readFile(path.join(__dirname, 'public', 'index.html'), (e2, d2) => {
         if (e2) { res.writeHead(404); res.end('Not found'); return; }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(d2);
       });
       return;
     }
-    const ext = path.extname(fullPath);
-    const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
-    res.writeHead(200, { 'Content-Type': mime[ext] || 'text/plain' });
+    const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
+    res.writeHead(200, { 'Content-Type': mime[path.extname(fullPath)] || 'text/plain' });
     res.end(data);
   });
 });
 
 server.listen(PORT, () => {
-  console.log('\n✅ BlogAI v10 실행 중!');
-  console.log(`👉 브라우저에서 열기: http://localhost:${PORT}\n`);
+  console.log('\n╔════════════════════════════════════════╗');
+  console.log('║        BlogAI v10 — 로컬 서버          ║');
+  console.log('╠════════════════════════════════════════╣');
+  console.log(`║  브라우저: http://localhost:${PORT}        ║`);
+  console.log(`║  저장위치: C:\\Users\\GKL\\Desktop\\블로그  ║`);
+  console.log('╚════════════════════════════════════════╝\n');
 });
