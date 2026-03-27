@@ -470,6 +470,8 @@ let fixTarget='nv';
 let gd={ts:'',nv:'',nvPrompts:[],tsPrompts:[]};
 let schedTimer=null,schedActive=false;
 let isLocal=false; // 로컬/Vercel 자동 감지
+let previousTsKeywords={}; // {카테고리: [이전 추천 키워드들]}
+let previousNvKeywords=[]; // 이전 네이버 추천 키워드들
 
 /* ═══ 로컬/Vercel 자동 감지 ═══ */
 async function detectMode(){
@@ -586,12 +588,34 @@ function seoName(raw,num,prefix=''){
 async function fetchKw(){
   if(!document.getElementById('claudeKey').value.trim()){toast('⚠ Claude API 키를 먼저 입력해주세요');return;}
   const cat=document.getElementById('tsKwCat').value;
+  const userKeyword=document.getElementById('tsKw').value.trim();
   const btn=document.getElementById('tsKwBtn');const chips=document.getElementById('tsChips');
   btn.textContent='⏳...';btn.disabled=true;
   chips.innerHTML='<span style="font-size:12px;color:var(--tx3)">추천 중...</span>';
   try{
-    const t=await claude(`한국 여행 블로그 SEO 전문가. "${cat}" 2026년 실제 검색 롱테일 키워드 10개.\n구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음.\nJSON 배열만: ["키워드1",...,"키워드10"]`,null,600);
+    let prompt='';
+    let excludeList='';
+    
+    // 이전 추천 키워드 목록 생성 (중복 제거를 위해 프롬프트에 포함)
+    if(previousTsKeywords[cat] && previousTsKeywords[cat].length > 0){
+      excludeList=`\n\n⚠️ 다음 키워드는 이미 추천했으니 다른 것으로: ${previousTsKeywords[cat].slice(0,5).join(', ')}`;
+    }
+    
+    if(userKeyword){
+      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천
+      prompt=`한국 여행 블로그 SEO 전문가. 다음 키워드와 유사하지만 다른, 검색량 높은 롱테일 키워드 10개.\n\n기본 키워드: "${userKeyword}"\n카테고리: "${cat}"\n조건: 구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음, 시즈널/트렌드 반영${excludeList}\n\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+    }else{
+      // 빈 입력: 기존 임의 추천 로직
+      prompt=`한국 여행 블로그 SEO 전문가. "${cat}" 2026년 실제 검색 롱테일 키워드 10개.\n구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+    }
+    
+    const t=await claude(prompt,null,600);
     let kws=[];try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
+    
+    // 이전 추천 키워드에 추가 저장
+    if(!previousTsKeywords[cat])previousTsKeywords[cat]=[];
+    previousTsKeywords[cat]=[...new Set([...previousTsKeywords[cat], ...kws])].slice(0,15);
+    
     chips.innerHTML='';
     kws.forEach(k=>{const el=document.createElement('span');el.className='chip';el.textContent=k;el.onclick=()=>{document.getElementById('tsKw').value=k;document.querySelectorAll('#tsChips .chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');toast('✔ '+k);};chips.appendChild(el);});
   }catch(e){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">오류: '+e.message+'</span>';}
@@ -600,14 +624,36 @@ async function fetchKw(){
 async function fetchHot(){
   if(!document.getElementById('claudeKey').value.trim()){toast('⚠ Claude API 키를 먼저 입력해주세요');return;}
   const cat=document.getElementById('nvKwCat').value;
+  const userKeyword=document.getElementById('nvKw').value.trim();
   const btn=document.getElementById('hotBtn');const chips=document.getElementById('nvChips');
   btn.textContent='⏳ 검색 중...';btn.disabled=true;
   chips.innerHTML='<span style="font-size:12px;color:var(--tx3)">실시간 트렌드 검색 중...</span>';
   try{
     let ctx='';const tk=document.getElementById('tavilyKey').value.trim();
     if(tk){setProg(5,'🔍 실시간 트렌드 검색...');const res=await tavilySearch(`${cat} 최신 이슈 뉴스 2026`);if(res)ctx=`\n\n[실시간뉴스]\n${res.slice(0,1500)}\n[끝]`;setProg(0,'');}
-    const t=await claude(`한국 블로그 SEO 전문가. "${cat}" 최근 3일 이내 핫한 키워드 10개.${ctx}\n조건: 2026년 현재 검색량 높고 시의성 있는 것, 애드포스트 유리.\nJSON 배열만: ["키워드1",...,"키워드10"]`,null,800);
+    
+    let prompt='';
+    let excludeList='';
+    
+    // 이전 추천 키워드 목록 생성
+    if(previousNvKeywords && previousNvKeywords.length > 0){
+      excludeList=`\n\n⚠️ 다음 키워드는 이미 추천했으니 다른 것으로: ${previousNvKeywords.slice(0,5).join(', ')}`;
+    }
+    
+    if(userKeyword){
+      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천
+      prompt=`한국 블로그 SEO 전문가. 다음 키워드와 유사하지만 다른, 최근 3일 이내 핫한 키워드 10개.\n\n기본 키워드: "${userKeyword}"\n카테고리: "${cat}"\n조건: 2026년 현재 검색량 높고 시의성 있는 것, 애드포스트 유리${excludeList}${ctx}\n\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+    }else{
+      // 빈 입력: 기존 임의 추천 로직
+      prompt=`한국 블로그 SEO 전문가. "${cat}" 최근 3일 이내 핫한 키워드 10개.${ctx}\n조건: 2026년 현재 검색량 높고 시의성 있는 것, 애드포스트 유리${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+    }
+    
+    const t=await claude(prompt,null,800);
     let kws=[];try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
+    
+    // 이전 추천 키워드에 추가 저장
+    previousNvKeywords=[...new Set([...previousNvKeywords, ...kws])].slice(0,20);
+    
     chips.innerHTML='';
     kws.forEach(k=>{const el=document.createElement('span');el.className='chip chip-hot';el.textContent=k;el.onclick=()=>{document.getElementById('nvKw').value=k;document.querySelectorAll('#nvChips .chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');toast('🔥 선택: '+k);};chips.appendChild(el);});
     toast('🔥 핫 키워드 '+kws.length+'개 선별 완료!');
@@ -773,6 +819,27 @@ JSON 배열만 반환:
       }catch(e){
         toast('⚠ 파일 저장 실패: '+e.message);
       }
+    }
+
+    /* ⑥ 깃허브 자동 푸시 */
+    setProg(93,'🚀 깃허브에 자동 푸시 중...');
+    try{
+      const gitRes=await fetch('/api/git-push',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({message:`BlogAI: ${fNvKw||fTsKw} 콘텐츠 생성 완료`})
+      });
+      const gitData=await gitRes.json();
+      if(gitData.success){
+        toast('🚀 깃허브 자동 푸시 완료!',3000);
+        addLog('✅ 깃허브 자동 푸시 완료','lok');
+      }else{
+        console.warn('깃 푸시 경고:',gitData);
+        addLog('⚠ 깃 푸시: '+gitData.message,'linf');
+      }
+    }catch(e){
+      console.warn('깃 푸시 오류 (무시됨):', e.message);
+      addLog('⚠ 깃 푸시 불가 (Git 미설정)','linf');
     }
 
     setProg(100,'✅ 완료!');
