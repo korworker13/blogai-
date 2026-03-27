@@ -780,10 +780,14 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
 8. 여행 팁 5가지+
 9. <!-- META-DESC: 160자이내 -->
 10. <!-- TISTORY-TAGS: 태그1 ... 태그10 -->
+11. ★ </article> 태그 절대 금지! (글 수정을 위해 닫는 태그 금지)
 전체 ${tsChar}자+${tsMemo}${tsCtx}`,
       `여행 전문 티스토리 블로거 ${nick}.`,5500);
-    gd.ts=tsText;
-    document.getElementById('tsOut').textContent=tsText;
+    
+    // ★ </article> 태그 제거 (수정 편의성)
+    let cleanTsText = tsText.replace(/<\/article>\s*/g, '').trim();
+    gd.ts = cleanTsText;
+    document.getElementById('tsOut').textContent=cleanTsText;
     document.getElementById('ok-ts').classList.add('on');
 
     /* ④ 이미지 프롬프트 생성 ★ 핵심 */
