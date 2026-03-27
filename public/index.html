@@ -757,8 +757,8 @@ async function generateAll(){
 HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
       `대한민국 최고 블로그 SEO 전문가, ${nvKwCat} 전문 네이버 블로거 ${nick}.`,5200);
     
-    // ★ 마크다운 형식 후처리 (혹시 모를 ##, #, - 제거)
-    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').trim();
+    // ★ 마크다운 형식 후처리 (혹시 모를 ##, #, -, ** 제거)
+    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').trim();
     gd.nv = cleanNvText;
     document.getElementById('nvOut').textContent=cleanNvText;
     document.getElementById('ok-nv').classList.add('on');
@@ -767,25 +767,39 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
     setProg(35,'✈️ 티스토리 HTML 작성 중...');
     const tsMemo=memoTs?`\n\n━━ 블로그 주인 메모 (경험담에 반드시 녹여낼 것) ━━\n${memoTs}\n━━ 끝 ━━`:'';
     const tsText=await claude(
-`[티스토리 여행 블로그 HTML]
+`[티스토리 여행 블로그 HTML — 명확한 줄바꿈과 구조화 필수]
 키워드: "${fTsKw}" | 분야: ${tsBlogType} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개
 
+★ 구조 및 줄바꿈 규칙 (매우 중요!):
+- 각 섹션(교통, 숙소, 맛집, 코스, 팁 등) 사이에 <br><br> 필수 (빈 줄 2줄)
+- 각 수평선 섹션 마다 <hr> 태그로 분리
+- 여행 팁 리스트: 각 팁마다 <p>🌟 팁제목<br>설명</p> 형식으로 개행
+- FAQ 항목: 각 Q&A를 <p><strong>Q: 질문</strong><br>A: 답변</p> 형식으로 개행
+- 번호나 이모지 사용으로 시각적 구분 강화
+- 절대 금지: 연속된 긴 텍스트 덩어리 (150자 이상 단락은 <br>로 분리)
+
+세부 구조:
 1. <article> 내용부터 시작
 2. <h1> 제목: 여행지 + 클릭 욕구
 3. 도입부 200자: 여행 설렘 공감
-4. <h2><h3>: 교통/숙소/맛집/코스/팁 섹션
-5. 경험담: 500자+ 생생하게
-6. 이미지: <!-- [이미지N: 설명] --> ${imgCount}개
-7. <table> 핵심 정보표
-8. 여행 팁 5가지+
-9. <!-- META-DESC: 160자이내 -->
-10. <!-- TISTORY-TAGS: 태그1 ... 태그10 -->
-11. ★ </article> 태그 절대 금지! (글 수정을 위해 닫는 태그 금지)
+4. <h2>교통</h2> + <br><br> + 상세정보
+5. <h2>숙소</h2> + <br><br> + 상세정보  
+6. <h2>맛집</h2> + <br><br> + 각 맛집 <p>이모지 맛집명<br>한줄설명</p> 형식
+7. <h2>코스</h2> + <br><br> + 상세정보
+8. <h2>현장 후기/경험담</h2> + <br><br> + 500자+ 생생하게
+9. 이미지: <!-- [이미지N: 설명] --> ${imgCount}개
+10. <hr><h3>✅ ${tsBlogType} 필수 정보</h3><br><br> + <table> 핵심정보표
+11. <hr><h3>💡 여행 꿀팁 7가지</h3><br><br> + 각 팁마다 <p>🌟 팁N: 제목<br>상세 설명</p> 형식 (7개 모두 개행 필수!)
+12. <hr><h3>❓ 자주묻는질문(FAQ)</h3><br><br> + 각 Q&A마다 <p><strong>Q: 질문</strong><br>A: 답변</p> (최소 5개 이상)
+13. <br><br><!-- META-DESC: 160자이내 설명 -->
+14. <!-- TISTORY-TAGS: 태그1 태그2 ... 태그10 -->
+15. ★ </article> 태그 절대 금지!
+
 전체 ${tsChar}자+${tsMemo}${tsCtx}`,
       `여행 전문 티스토리 블로거 ${nick}.`,5500);
     
-    // ★ </article> 태그 제거 (수정 편의성)
-    let cleanTsText = tsText.replace(/<\/article>\s*/g, '').trim();
+    // ★ </article> 태그 및 마크다운 강조 ** 제거 (수정 편의성)
+    let cleanTsText = tsText.replace(/<\/article>\s*/g, '').replace(/\*\*/g, '').trim();
     gd.ts = cleanTsText;
     document.getElementById('tsOut').textContent=cleanTsText;
     document.getElementById('ok-ts').classList.add('on');
