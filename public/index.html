@@ -602,8 +602,22 @@ async function fetchKw(){
     }
     
     if(userKeyword){
-      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천
-      prompt=`한국 여행 블로그 SEO 전문가. 다음 키워드와 유사하지만 다른, 검색량 높은 롱테일 키워드 10개.\n\n기본 키워드: "${userKeyword}"\n카테고리: "${cat}"\n조건: 구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음, 시즈널/트렌드 반영${excludeList}\n\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천 (더 엄격한 관련성 조건)
+      prompt=`한국 여행 블로그 SEO 전문가.
+
+[기본 키워드] "${userKeyword}"
+
+위 키워드와 "같은 여행지/코스/테마" 범위 내에서, 검색량 높은 롱테일 키워드 10개를 찾아주세요.
+
+★ 중요한 조건:
+- 기본 키워드와 같은 여행지/지역/코스 테마여야 함
+- 기본 키워드의 핵심 여행 주제와 크게 벗어나면 안 됨
+- 구체적 여행지/코스/맛집/숙소 중심
+- 검색경쟁 낮고 구글/네이버 검색량 높은 것
+- 실제로 존재하는 장소/코스
+- 2026년 현재 검색되는 현실적인 키워드만${excludeList}
+
+반드시 JSON 배열 형식만 반환: ["키워드1",...,"키워드10"]`;
     }else{
       // 빈 입력: 기존 임의 추천 로직
       prompt=`한국 여행 블로그 SEO 전문가. "${cat}" 2026년 실제 검색 롱테일 키워드 10개.\n구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
@@ -641,8 +655,21 @@ async function fetchHot(){
     }
     
     if(userKeyword){
-      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천
-      prompt=`한국 블로그 SEO 전문가. 다음 키워드와 유사하지만 다른, 최근 3일 이내 핫한 키워드 10개.\n\n기본 키워드: "${userKeyword}"\n카테고리: "${cat}"\n조건: 2026년 현재 검색량 높고 시의성 있는 것, 애드포스트 유리${excludeList}${ctx}\n\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천 (더 엄격한 관련성 조건)
+      prompt=`한국 블로그 SEO 전문가. 
+
+[기본 키워드] "${userKeyword}"
+
+위 키워드와 "같은 주제/정책/카테고리" 범위 내에서, 최근 3일 이내 핫한 키워드 10개를 찾아주세요.
+
+★ 중요한 조건:
+- 기본 키워드와 같은 주제/정책 범주여야 함 (예: 지원금→지원금, 복지→복지)
+- 기본 키워드의 핵심 의미와 크게 벗어나면 안 됨
+- 2026년 현재 검색량 높고 시의성 있는 것만
+- 애드포스트 유리한 것
+- 실제로 존재하고 검색되는 키워드만${excludeList}${ctx}
+
+반드시 JSON 배열 형식만 반환: ["키워드1",...,"키워드10"]`;
     }else{
       // 빈 입력: 기존 임의 추천 로직
       prompt=`한국 블로그 SEO 전문가. "${cat}" 최근 3일 이내 핫한 키워드 10개.${ctx}\n조건: 2026년 현재 검색량 높고 시의성 있는 것, 애드포스트 유리${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
@@ -717,6 +744,8 @@ async function generateAll(){
 - 한 문단 = 최대 2~3줄 (50자 이내) — 모바일 핵심
 - 표(table) 절대 금지
 - 단락 사이 빈 줄 필수
+- ★ 마크다운 문법 절대 금지 (##, #, -, *, 따옴표 등 마크다운 기호 사용 금지!)
+- ★ 순수 텍스트 + 이모지만 사용
 
 첫 줄: 제목: [클릭 유도형 제목]
 도입부 3줄: 공감 + 읽어야 하는 이유
@@ -727,8 +756,11 @@ async function generateAll(){
 태그 20개 맨 아래 (# 없이 줄바꿈)
 HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
       `대한민국 최고 블로그 SEO 전문가, ${nvKwCat} 전문 네이버 블로거 ${nick}.`,5200);
-    gd.nv=nvText;
-    document.getElementById('nvOut').textContent=nvText;
+    
+    // ★ 마크다운 형식 후처리 (혹시 모를 ##, #, - 제거)
+    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').trim();
+    gd.nv = cleanNvText;
+    document.getElementById('nvOut').textContent=cleanNvText;
     document.getElementById('ok-nv').classList.add('on');
 
     /* ③ 티스토리 글 */
@@ -872,6 +904,7 @@ function renderPromptCards(gridId, prompts, type){
   prompts.forEach((p,i)=>{
     const card=document.createElement('div');
     card.className='prompt-card';
+    const uniqueId=`prompt-${type}-${i}`;
     card.innerHTML=`
       <div class="pc-hdr">
         <div>
@@ -884,12 +917,14 @@ function renderPromptCards(gridId, prompts, type){
         <div>
           <div class="pc-label" style="color:var(--tl)">🇺🇸 영어 프롬프트 (미드저니 · ChatGPT)</div>
           <div class="pc-en">${p.prompt_en||''}</div>
-          <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyText(${JSON.stringify(p.prompt_en||'')})">📋 영어 프롬프트 복사</button>
+          <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyPromptText('${uniqueId}-en')">📋 영어 프롬프트 복사</button>
+          <textarea id="${uniqueId}-en" style="display:none">${p.prompt_en||''}</textarea>
         </div>
         <div>
           <div class="pc-label" style="color:var(--am)">🇰🇷 한국어 프롬프트 (Canva · 네이버AI)</div>
           <div class="pc-ko">${p.prompt_ko||''}</div>
-          <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyText(${JSON.stringify(p.prompt_ko||'')})">📋 한국어 프롬프트 복사</button>
+          <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyPromptText('${uniqueId}-ko')">📋 한국어 프롬프트 복사</button>
+          <textarea id="${uniqueId}-ko" style="display:none">${p.prompt_ko||''}</textarea>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div class="pc-caption">📝 캡션: ${p.caption||''}</div>
@@ -897,6 +932,12 @@ function renderPromptCards(gridId, prompts, type){
       </div>`;
     grid.appendChild(card);
   });
+}
+
+function copyPromptText(elementId){
+  const textarea=document.getElementById(elementId);
+  if(!textarea){toast('⚠ 복사 오류');return;}
+  navigator.clipboard.writeText(textarea.value).then(()=>toast('📋 프롬프트 복사됐어요!')).catch(err=>toast('❌ 복사 실패'));
 }
 
 /* ═══ 수정 요청 ═══ */
