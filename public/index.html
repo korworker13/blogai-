@@ -209,6 +209,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <input type="password" id="claudeKey" placeholder="sk-ant-api03-..." oninput="autoSave()"></div>
   <div class="fld"><label>Tavily API 키 <span style="color:var(--tl)">실시간 뉴스</span></label>
     <input type="password" id="tavilyKey" placeholder="tvly-..." oninput="autoSave()"></div>
+  <div class="fld"><label>Gemini API 키 <span style="color:var(--tl)">실시간 뉴스 대체</span></label>
+    <input type="password" id="geminiKey" placeholder="gapi-..." oninput="autoSave()"></div>
   <div class="tog"><span>키 저장 (이 기기)</span>
     <label class="tw"><input type="checkbox" id="saveTgl" onchange="onSaveTgl()"><div class="ttrack"></div><div class="tthumb"></div></label>
   </div>
@@ -529,7 +531,8 @@ function loadKeys(){
   if(on){
     const ck=localStorage.getItem('bai_ck')||'';if(ck)document.getElementById('claudeKey').value=ck;
     const tk=localStorage.getItem('bai_tk')||'';if(tk)document.getElementById('tavilyKey').value=tk;
-    if(ck||tk)document.getElementById('ksaved').classList.add('on');
+  const gk=localStorage.getItem('bai_gk')||'';if(gk)document.getElementById('geminiKey').value=gk;
+    if(ck||tk||gk)document.getElementById('ksaved').classList.add('on');
   }
   if(localStorage.getItem('bai_st1'))document.getElementById('st1').value=localStorage.getItem('bai_st1');
   if(localStorage.getItem('bai_st2'))document.getElementById('st2').value=localStorage.getItem('bai_st2');
@@ -539,7 +542,8 @@ function autoSave(){
   if(!document.getElementById('saveTgl').checked)return;
   const ck=document.getElementById('claudeKey').value.trim();if(ck)localStorage.setItem('bai_ck',ck);
   const tk=document.getElementById('tavilyKey').value.trim();if(tk)localStorage.setItem('bai_tk',tk);
-  if(ck||tk)document.getElementById('ksaved').classList.add('on');
+  const gk=document.getElementById('geminiKey').value.trim();if(gk)localStorage.setItem('bai_gk',gk);
+  if(ck||tk||gk)document.getElementById('ksaved').classList.add('on');
 }
 function onSaveTgl(){
   const on=document.getElementById('saveTgl').checked;localStorage.setItem('bai_save',on?'1':'0');
@@ -571,6 +575,18 @@ async function tavilySearch(query){
     const r=await fetch('/api/tavily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,query})});
     const d=await r.json();
     if(d.results){let ctx='';if(d.answer)ctx+=`[AI요약]\n${d.answer}\n\n`;ctx+=d.results.slice(0,6).map(r=>`[${r.title}]\n${r.content}`).join('\n\n');return ctx;}
+    return null;
+  }catch(e){return null;}
+}
+
+async function geminiSearch(query){
+  const key=document.getElementById('geminiKey').value.trim();if(!key)return null;
+  try{
+    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:300})});
+    const d=await r.json();
+    if(d.error) return null;
+    if(d.text) return d.text;
+    if(d.candidates && d.candidates[0] && d.candidates[0].output) return d.candidates[0].output;
     return null;
   }catch(e){return null;}
 }
@@ -643,8 +659,17 @@ async function fetchHot(){
   btn.textContent='⏳ 검색 중...';btn.disabled=true;
   chips.innerHTML='<span style="font-size:12px;color:var(--tx3)">실시간 트렌드 검색 중...</span>';
   try{
-    let ctx='';const tk=document.getElementById('tavilyKey').value.trim();
-    if(tk){setProg(5,'🔍 실시간 트렌드 검색...');const res=await tavilySearch(`${cat} 최신 이슈 뉴스 2026`);if(res)ctx=`\n\n[실시간뉴스]\n${res.slice(0,1500)}\n[끝]`;setProg(0,'');}
+    let ctx='';
+    const tk=document.getElementById('tavilyKey').value.trim();
+    const gk=document.getElementById('geminiKey').value.trim();
+    if(tk||gk){
+      setProg(5,'🔍 실시간 트렌드 검색 (Tavily/Gemini)...');
+      const tRes = tk ? await tavilySearch(`${cat} 최신 이슈 뉴스 2026`) : null;
+      const gRes = gk ? await geminiSearch(`${cat} 최신 이슈 뉴스 2026`) : null;
+      if(tRes) ctx += `\n\n[실시간뉴스 - Tavily]\n${tRes.slice(0,1500)}\n[끝]`;
+      if(gRes) ctx += `\n\n[실시간뉴스 - Gemini]\n${gRes.slice(0,1500)}\n[끝]`;
+      setProg(0,'');
+    }
     
     let prompt='';
     let excludeList='';
@@ -655,19 +680,22 @@ async function fetchHot(){
     }
     
     if(userKeyword){
-      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천 (더 엄격한 관련성 조건)
+      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천 (매우 엄격한 관련성 조건)
       prompt=`한국 블로그 SEO 전문가. 
 
 [기본 키워드] "${userKeyword}"
 
-위 키워드와 "같은 주제/정책/카테고리" 범위 내에서, 최근 3일 이내 핫한 키워드 10개를 찾아주세요.
+1) 입력 키워드와 직접적으로 연관된 키워드(예: ${userKeyword} 연휴, ${userKeyword} 행사, ${userKeyword} 할인 등) 5개
+2) 입력 키워드를 포함하거나 동의어로 확장한 키워드 3개
+3) 입력 키워드의 카테고리·주제(법률, 세제, 공휴일 등)에 맞는 핫 키워드 2개
 
-★ 중요한 조건:
-- 기본 키워드와 같은 주제/정책 범주여야 함 (예: 지원금→지원금, 복지→복지)
-- 기본 키워드의 핵심 의미와 크게 벗어나면 안 됨
-- 2026년 현재 검색량 높고 시의성 있는 것만
+★ 반드시 지킬 점:
+- 모든 키워드는 "${userKeyword}"과 의미적으로 유사하거나 포함관계여야 함
+- 기본 키워드 핵심 의미와 크게 벗어나면 안 됨
+- 2026년 현재 검색량 높고 시의성 있는 것
 - 애드포스트 유리한 것
-- 실제로 존재하고 검색되는 키워드만${excludeList}${ctx}
+- 실제로 존재하고 검색되는 키워드만
+- 동일 주제(예: 노동절 입력 시 타 정책 얘기 제외, 최저임금X)${excludeList}${ctx}
 
 반드시 JSON 배열 형식만 반환: ["키워드1",...,"키워드10"]`;
     }else{
@@ -720,14 +748,19 @@ async function generateAll(){
     /* ① 실시간 검색 */
     let nvCtx='',tsCtx='';
     const tk=document.getElementById('tavilyKey').value.trim();
-    if(tk){
-      setProg(5,'🔍 실시간 뉴스 검색 중...');
-      const [nR,tR]=await Promise.all([
-        tavilySearch(`${fNvKw} 최신 뉴스 배경 이유 2026`),
-        tavilySearch(`${fTsKw} 여행 정보 2026`)
+    const gk=document.getElementById('geminiKey').value.trim();
+    if(tk||gk){
+      setProg(5,'🔍 실시간 뉴스 검색 중 (Tavily/Gemini)...');
+      const [nR,tR,gR1,gR2] = await Promise.all([
+        tk ? tavilySearch(`${fNvKw} 최신 뉴스 배경 이유 2026`) : Promise.resolve(null),
+        tk ? tavilySearch(`${fTsKw} 여행 정보 2026`) : Promise.resolve(null),
+        gk ? geminiSearch(`${fNvKw} 최신 뉴스 배경 이유 2026`) : Promise.resolve(null),
+        gk ? geminiSearch(`${fTsKw} 여행 정보 2026`) : Promise.resolve(null)
       ]);
-      if(nR)nvCtx=`\n\n━━ 실시간 뉴스/검색 결과 ━━\n${nR}\n━━ 끝 ━━`;
-      if(tR)tsCtx=`\n\n━━ 실시간 여행 정보 ━━\n${tR}\n━━ 끝 ━━`;
+      if(nR)nvCtx=`\n\n━━ 실시간 뉴스/검색 결과 (Tavily) ━━\n${nR}\n━━ 끝 ━━`;
+      if(gR1)nvCtx += `\n\n━━ 실시간 뉴스/검색 결과 (Gemini) ━━\n${gR1}\n━━ 끝 ━━`;
+      if(tR)tsCtx=`\n\n━━ 실시간 여행 정보 (Tavily) ━━\n${tR}\n━━ 끝 ━━`;
+      if(gR2)tsCtx += `\n\n━━ 실시간 여행 정보 (Gemini) ━━\n${gR2}\n━━ 끝 ━━`;
       toast('✅ 실시간 정보 수집 완료!');
     }
 
@@ -757,8 +790,8 @@ async function generateAll(){
 HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
       `대한민국 최고 블로그 SEO 전문가, ${nvKwCat} 전문 네이버 블로거 ${nick}.`,5200);
     
-    // ★ 마크다운 형식 후처리 (혹시 모를 ##, #, - 제거)
-    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').trim();
+    // ★ 마크다운 형식 후처리 (혹시 모를 ##, #, -, ** 제거)
+    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').trim();
     gd.nv = cleanNvText;
     document.getElementById('nvOut').textContent=cleanNvText;
     document.getElementById('ok-nv').classList.add('on');
@@ -767,25 +800,39 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
     setProg(35,'✈️ 티스토리 HTML 작성 중...');
     const tsMemo=memoTs?`\n\n━━ 블로그 주인 메모 (경험담에 반드시 녹여낼 것) ━━\n${memoTs}\n━━ 끝 ━━`:'';
     const tsText=await claude(
-`[티스토리 여행 블로그 HTML]
+`[티스토리 여행 블로그 HTML — 명확한 줄바꿈과 구조화 필수]
 키워드: "${fTsKw}" | 분야: ${tsBlogType} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개
 
+★ 구조 및 줄바꿈 규칙 (매우 중요!):
+- 각 섹션(교통, 숙소, 맛집, 코스, 팁 등) 사이에 <br><br> 필수 (빈 줄 2줄)
+- 각 수평선 섹션 마다 <hr> 태그로 분리
+- 여행 팁 리스트: 각 팁마다 <p>🌟 팁제목<br>설명</p> 형식으로 개행
+- FAQ 항목: 각 Q&A를 <p><strong>Q: 질문</strong><br>A: 답변</p> 형식으로 개행
+- 번호나 이모지 사용으로 시각적 구분 강화
+- 절대 금지: 연속된 긴 텍스트 덩어리 (150자 이상 단락은 <br>로 분리)
+
+세부 구조:
 1. <article> 내용부터 시작
 2. <h1> 제목: 여행지 + 클릭 욕구
 3. 도입부 200자: 여행 설렘 공감
-4. <h2><h3>: 교통/숙소/맛집/코스/팁 섹션
-5. 경험담: 500자+ 생생하게
-6. 이미지: <!-- [이미지N: 설명] --> ${imgCount}개
-7. <table> 핵심 정보표
-8. 여행 팁 5가지+
-9. <!-- META-DESC: 160자이내 -->
-10. <!-- TISTORY-TAGS: 태그1 ... 태그10 -->
-11. ★ </article> 태그 절대 금지! (글 수정을 위해 닫는 태그 금지)
+4. <h2>교통</h2> + <br><br> + 상세정보
+5. <h2>숙소</h2> + <br><br> + 상세정보  
+6. <h2>맛집</h2> + <br><br> + 각 맛집 <p>이모지 맛집명<br>한줄설명</p> 형식
+7. <h2>코스</h2> + <br><br> + 상세정보
+8. <h2>현장 후기/경험담</h2> + <br><br> + 500자+ 생생하게
+9. 이미지: <!-- [이미지N: 설명] --> ${imgCount}개
+10. <hr><h3>✅ ${tsBlogType} 필수 정보</h3><br><br> + <table> 핵심정보표
+11. <hr><h3>💡 여행 꿀팁 7가지</h3><br><br> + 각 팁마다 <p>🌟 팁N: 제목<br>상세 설명</p> 형식 (7개 모두 개행 필수!)
+12. <hr><h3>❓ 자주묻는질문(FAQ)</h3><br><br> + 각 Q&A마다 <p><strong>Q: 질문</strong><br>A: 답변</p> (최소 5개 이상)
+13. <br><br><!-- META-DESC: 160자이내 설명 -->
+14. <!-- TISTORY-TAGS: 태그1 태그2 ... 태그10 -->
+15. ★ </article> 태그 절대 금지!
+
 전체 ${tsChar}자+${tsMemo}${tsCtx}`,
       `여행 전문 티스토리 블로거 ${nick}.`,5500);
     
-    // ★ </article> 태그 제거 (수정 편의성)
-    let cleanTsText = tsText.replace(/<\/article>\s*/g, '').trim();
+    // ★ </article> 태그 및 마크다운 강조 ** 제거 (수정 편의성)
+    let cleanTsText = tsText.replace(/<\/article>\s*/g, '').replace(/\*\*/g, '').trim();
     gd.ts = cleanTsText;
     document.getElementById('tsOut').textContent=cleanTsText;
     document.getElementById('ok-ts').classList.add('on');

@@ -68,6 +68,35 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Gemini API
+  if (req.method === 'POST' && req.url === '/api/gemini') {
+    const { apiKey, prompt, max_tokens } = await readBody(req);
+    const key = apiKey || process.env.GEMINI_API_KEY;
+    if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
+
+    try {
+      const body = {
+        model: 'text-bison-001',
+        prompt: {
+          text: prompt || ''
+        },
+        temperature: 0.2,
+        max_output_tokens: max_tokens || 300
+      };
+      const result = await httpsPost('generativelanguage.googleapis.com', '/v1beta2/models/text-bison-001:generate?key=' + encodeURIComponent(key), {}, JSON.stringify(body));
+      let text = '';
+      if (result && result.candidates && result.candidates[0] && result.candidates[0].output) {
+        text = result.candidates[0].output;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ text, raw: result }));
+    } catch (e) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   // ★ 깃 푸시 API — 변경사항 자동 커밋 및 푸시
   if (req.method === 'POST' && req.url === '/api/git-push') {
     const { message } = await readBody(req);
