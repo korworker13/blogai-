@@ -790,8 +790,8 @@ async function generateAll(){
 HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
       `대한민국 최고 블로그 SEO 전문가, ${nvKwCat} 전문 네이버 블로거 ${nick}.`,5200);
     
-    // ★ 마크다운 형식 후처리 (혹시 모를 ##, #, -, ** 제거)
-    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').trim();
+    // ★ 마크다운 형식/깨짐 문자 후처리 (혹시 모를 ##, #, -, **, � 제거)
+    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
     gd.nv = cleanNvText;
     document.getElementById('nvOut').textContent=cleanNvText;
     document.getElementById('ok-nv').classList.add('on');
@@ -812,9 +812,9 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
 - 절대 금지: 연속된 긴 텍스트 덩어리 (150자 이상 단락은 <br>로 분리)
 
 세부 구조:
-1. <article> 내용부터 시작
-2. <h1> 제목: 여행지 + 클릭 욕구
-3. 도입부 200자: 여행 설렘 공감
+1. <h1> 제목: 여행지 + 클릭 욕구
+2. 도입부 200자: 여행 설렘 공감
+3. <section> 내용 본문 시작 (괜찮으면 <section>과 </section>로 감쌈)
 4. <h2>교통</h2> + <br><br> + 상세정보
 5. <h2>숙소</h2> + <br><br> + 상세정보  
 6. <h2>맛집</h2> + <br><br> + 각 맛집 <p>이모지 맛집명<br>한줄설명</p> 형식
@@ -826,13 +826,13 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
 12. <hr><h3>❓ 자주묻는질문(FAQ)</h3><br><br> + 각 Q&A마다 <p><strong>Q: 질문</strong><br>A: 답변</p> (최소 5개 이상)
 13. <br><br><!-- META-DESC: 160자이내 설명 -->
 14. <!-- TISTORY-TAGS: 태그1 태그2 ... 태그10 -->
-15. ★ </article> 태그 절대 금지!
+15. ★ 마크다운/HTML 오류 방지: "�" 등 깨짐문자 제거, 텍스트 직접 삽입시 줄바꿈 유지
 
 전체 ${tsChar}자+${tsMemo}${tsCtx}`,
       `여행 전문 티스토리 블로거 ${nick}.`,5500);
     
-    // ★ </article> 태그 및 마크다운 강조 ** 제거 (수정 편의성)
-    let cleanTsText = tsText.replace(/<\/article>\s*/g, '').replace(/\*\*/g, '').trim();
+    // ★ <article> / </article> 태그 제거, 마크다운 강조 ** 제거, 깨짐 문자 � 제거
+    let cleanTsText = tsText.replace(/<article>/g, '').replace(/<\/article>/g, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
     gd.ts = cleanTsText;
     document.getElementById('tsOut').textContent=cleanTsText;
     document.getElementById('ok-ts').classList.add('on');
