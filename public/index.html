@@ -876,21 +876,49 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
 
 JSON 배열만 반환:
 [
-  {"type":"naver","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","filename":"naver-파일명.jpg"},
-  {"type":"tistory","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","filename":"tistory-파일명.jpg"}
+  {"type":"naver","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","caption":"(텍스트만)","filename":"naver-파일명.jpg"},
+  {"type":"tistory","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","caption":"(텍스트만)","filename":"tistory-파일명.jpg"}
 ]
 
-* 캡션은 사용하지 않습니다 (모든 캡션 필드를 제거하세요).`,
+★ 모든 항목 필수
+- type: naver 또는 tistory
+- num: 1부터 이미지 개수까지 순차적
+- caption: '캡션:' 접두사 없이 순수 텍스트만 (40자 내)
+- 출력에 캡션 접두사 절대 금지
+- 중복 아이템, 5개 이상/미만이어도 안 됨 (정확히 ${imgCount*2}개)
+- 잘못된 결과가 나올 경우, "[ERROR]" 목적어 대신 다시 생성
+`,
       null, 3000);
 
     let allPrompts=[];
     try{
       const x=promptRaw.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
       allPrompts=JSON.parse(x?x[0]:promptRaw);
-    }catch(e){console.error('프롬프트 파싱 오류',e);}
+      if(!Array.isArray(allPrompts)) allPrompts=[allPrompts];
+    }catch(e){
+      console.error('프롬프트 파싱 오류',e);
+      allPrompts=[];
+    }
 
-    gd.nvPrompts=allPrompts.filter(p=>p.type==='naver');
-    gd.tsPrompts=allPrompts.filter(p=>p.type==='tistory');
+    // 최대 이미지 수 정확히 맞추기 (네이버+티스토리 각각 imgCount개)
+    const expectedCount = imgCount * 2;
+    if(allPrompts.length !== expectedCount){
+      console.warn(`프롬프트 항목 수가 예상(${expectedCount})와 다름: ${allPrompts.length}`);
+    }
+
+    // 정규화
+    allPrompts = allPrompts.map((p, i) => ({
+      type: (p && p.type) ? p.type.toLowerCase() : (i < imgCount ? 'naver' : 'tistory'),
+      num: p && p.num ? p.num : (i % imgCount) + 1,
+      title: (p && p.title) ? p.title : `이미지 ${i+1}`,
+      prompt_en: (p && p.prompt_en) ? p.prompt_en : '',
+      prompt_ko: (p && p.prompt_ko) ? p.prompt_ko : '',
+      caption: (p && p.caption) ? String(p.caption).replace(/^\s*캡션\s*[:：]\s*/i,'').trim() : '',
+      filename: (p && p.filename) ? p.filename : `image-${i+1}.jpg`
+    }));
+
+    gd.nvPrompts = allPrompts.filter(p => p.type === 'naver');
+    gd.tsPrompts = allPrompts.filter(p => p.type === 'tistory');
 
     // 프롬프트 카드 렌더링
     renderPromptCards('pgrid-nv', gd.nvPrompts, 'nv');
@@ -991,6 +1019,9 @@ function renderPromptCards(gridId, prompts, type){
           <div class="pc-ko">${p.prompt_ko||''}</div>
           <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyPromptText('${uniqueId}-ko')">📋 한국어 프롬프트 복사</button>
           <textarea id="${uniqueId}-ko" style="display:none">${p.prompt_ko||''}</textarea>
+        </div>
+        <div style="margin-top:8px;">
+          <div class="pc-caption">${p.caption||''}</div>
         </div>
       </div>`;
     grid.appendChild(card);
