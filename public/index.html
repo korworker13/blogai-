@@ -780,7 +780,8 @@ async function generateAll(){
 핵심 규칙:
 - 검색 결과 최신 뉴스·이유·배경을 반드시 본문에 반영 (단순 사전적 설명 금지)
 - '업데이트/정책/이벤트' 이슈 + 실제 정보(수치/조건/절차) 결합
-- 고단가 광고 키워드(대출, 보험, 카드, 주식, 재테크, 세금 등)를 자연스럽게 포함
+- 고단가 광고 키워드(대출, 보험, 카드, 주식, 재테크, 세금 등)는 단지 수익 연관 키워드로서 ‘선택 옵션’이며, 여행 리뷰 본문에서는 반드시 직접 언급하지 않아도 됨
+- 여행 리뷰에는 '여행 동선, 숙소, 코스, 추천 팁, 현장 리포트' 중심으로 기술
 - 황금 키워드 및 카테고리를 콘텐츠 중간에 배치하고 제목/소제목에 함유
 - 클릭률 높이기: 앞부분에 문제/해결/혜택(30초 컬 유도) 배치
 - 체류시간 증가: 정보성 리스트/FAQ(텍스트) 강조 + 관련 카테고리 키워드 조합
@@ -806,6 +807,11 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
     
     // ★ 마크다운 형식/깨짐 문자 후처리 (혹시 모를 ##, #, -, **, � 제거)
     let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
+    // 여행 템플릿에서는 불필요한 금융 키워드 제거
+    if(/여행/.test(fNvKw + fTsKw + nvKwCat + tsBlogType)){
+      cleanNvText = cleanNvText.replace(/\b(세금|보험|보험료|대출|카드|재테크|금융|재정|세액|고정비)\b/g, '');
+      cleanNvText = cleanNvText.replace(/\s{2,}/g, ' ').trim();
+    }
     gd.nv = cleanNvText;
     document.getElementById('nvOut').textContent=cleanNvText;
     document.getElementById('ok-nv').classList.add('on');
@@ -854,6 +860,11 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
     
     // ★ <article> / </article> 태그 제거, 마크다운 강조 ** 제거, 깨짐 문자 � 제거
     let cleanTsText = tsText.replace(/<article>/g, '').replace(/<\/article>/g, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
+    // 여행 템플릿에서는 불필요한 금융 키워드 제거
+    if(/여행/.test(fNvKw + fTsKw + nvKwCat + tsBlogType)){
+      cleanTsText = cleanTsText.replace(/\b(세금|보험|보험료|대출|카드|재테크|금융|재정|세액|고정비)\b/g, '');
+      cleanTsText = cleanTsText.replace(/\s{2,}/g, ' ').trim();
+    }
     gd.ts = cleanTsText;
     document.getElementById('tsOut').textContent=cleanTsText;
     document.getElementById('ok-ts').classList.add('on');
