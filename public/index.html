@@ -783,12 +783,16 @@ async function generateAll(){
 - 고단가 광고 키워드(대출, 보험, 카드, 주식, 재테크, 세금 등)를 자연스럽게 포함
 - 황금 키워드 및 카테고리를 콘텐츠 중간에 배치하고 제목/소제목에 함유
 - 클릭률 높이기: 앞부분에 문제/해결/혜택(30초 컬 유도) 배치
-- 체류시간 증가: 정보성 리스트/비교표/FAQ(텍스트) 강조 + 관련 카테고리 키워드 조합
+- 체류시간 증가: 정보성 리스트/FAQ(텍스트) 강조 + 관련 카테고리 키워드 조합
 - 한 문단 = 최대 2~3줄 (50자 이내) — 모바일 핵심
 - 표(table) 절대 금지
 - 단락 사이 빈 줄 필수
 - ★ 마크다운 문법 절대 금지 (##, #, -, *, 따옴표 등 마크다운 기호 사용 금지!)
 - ★ 순수 텍스트 + 이모지만 사용
+
+우측 메모(사용자 입력) 처리:
+- 입력된 내용을 그대로 넣지 않고, 관련 인터넷 기사/통계/사례를 추가 조사해서 2~3배 풍부하게 확장
+- 핵심 문장 (키워드 포함) 2-3개로 재작성하고, 상세 설명 300자 이상 추가
 
 첫 줄: 제목: [클릭 유도형 제목]
 도입부 3줄: 공감 + 읽어야 하는 이유
@@ -876,8 +880,8 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
 
 JSON 배열만 반환:
 [
-  {"type":"naver","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","caption":"(텍스트만)","filename":"naver-파일명.jpg"},
-  {"type":"tistory","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","caption":"(텍스트만)","filename":"tistory-파일명.jpg"}
+  {"type":"naver","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_gpt":"Gemini/ChatGPT에 넣을 세부 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","caption":"텍스트만","filename":"naver-파일명.jpg"},
+  {"type":"tistory","num":1,"title":"이미지 제목 20자내","prompt_en":"구체적인 영어 프롬프트","prompt_gpt":"Gemini/ChatGPT에 넣을 세부 프롬프트","prompt_ko":"구체적인 한국어 프롬프트","caption":"텍스트만","filename":"tistory-파일명.jpg"}
 ]
 
 ★ 모든 항목 필수
@@ -1019,6 +1023,12 @@ function renderPromptCards(gridId, prompts, type){
           <div class="pc-ko">${p.prompt_ko||''}</div>
           <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyPromptText('${uniqueId}-ko')">📋 한국어 프롬프트 복사</button>
           <textarea id="${uniqueId}-ko" style="display:none">${p.prompt_ko||''}</textarea>
+        </div>
+        <div>
+          <div class="pc-label" style="color:var(--nv)">🤖 Gemini/ChatGPT 프롬프트</div>
+          <div class="pc-en" style="color:var(--nv)">${p.prompt_gpt||''}</div>
+          <button class="btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="copyPromptText('${uniqueId}-gpt')">📋 GPT 프롬프트 복사</button>
+          <textarea id="${uniqueId}-gpt" style="display:none">${p.prompt_gpt||''}</textarea>
         </div>
         <div style="margin-top:8px;">
           <div class="pc-caption">${p.caption||''}</div>
