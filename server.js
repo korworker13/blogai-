@@ -108,7 +108,7 @@ const server = http.createServer(async (req, res) => {
         generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
-        `/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${encodeURIComponent(key)}`,
+        `/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
 
       let imageData = null, mimeType = 'image/png';

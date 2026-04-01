@@ -917,7 +917,15 @@ async function generateAll(){
 소제목 6개+: 이모지 + 자극적이고 정보적인 소제목
 각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입
 마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가
-[이미지N 삽입 위치] ${imgCount}개 본문 중간 분산
+
+★ 이미지 배치 규칙 (매우 중요, 절대 몰아서 넣지 말 것):
+- [이미지1 삽입 위치 - 설명]: 도입부 또는 첫 소제목 바로 뒤
+- [이미지2 삽입 위치 - 설명]: 두/세번째 소제목 뒤
+- [이미지3 삽입 위치 - 설명]: 중반부 소제목 뒤
+- [이미지4 삽입 위치 - 설명]: 후반부 소제목 뒤
+- [이미지5 삽입 위치 - 설명]: 마무리 직전 (해당하는 이미지 수 만큼만)
+- 반드시 각 소제목 사이사이에 분산 배치, 마지막에 몰아서 넣기 절대 금지
+
 태그 20개 맨 아래 (# 없이 줄바꿈)
 HTML 태그 없이 순수 텍스트${nvMemo}${nvOpinion}${nvCtx}`,
       `대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`,5500);
@@ -1008,8 +1016,10 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvOpinion}${nvCtx}`,
   - 예시: "2026년 청년 월세 지원 정책을 설명하는 파스텔 블루 계열의 깔끔한 인포그래픽 카드뉴스, 아이콘과 수치가 포함된 정보성 디자인"
 
 ★ 스타일 기준:
-- 네이버용: 카드뉴스/인포그래픽 스타일 (정보전달 중심, 텍스트+그래픽 혼합)
-- 티스토리용: 실제 여행/현장 사진 스타일 (자연광, 현장감, 감성적)
+- 글 내용과 주제에 맞게 자유롭게 선택 (인포그래픽, 카드뉴스, 현장사진, 일러스트, 개념도 등 제한 없음)
+- 정보성/정책/금융 관련: 인포그래픽·카드뉴스·데이터 시각화 스타일 권장
+- 여행/현장/체험 관련: 자연광 현장사진·감성 스타일 권장
+- 혼합형: 글 흐름에 따라 이미지마다 다른 스타일 적용 가능
 
 JSON 배열만 반환:
 [
@@ -1053,6 +1063,7 @@ JSON 배열만 반환:
       num: p && p.num ? p.num : (i % imgCount) + 1,
       title: (p && p.title) ? p.title : `이미지 ${i+1}`,
       prompt_en: (p && p.prompt_en) ? p.prompt_en : '',
+      prompt_gpt: (p && p.prompt_gpt) ? p.prompt_gpt : '',
       prompt_ko: (p && p.prompt_ko) ? p.prompt_ko : '',
       caption: (p && p.caption) ? String(p.caption).replace(/^\s*캡션\s*[:：]\s*/i,'').trim() : '',
       filename: (p && p.filename) ? p.filename : `image-${i+1}.jpg`
@@ -1171,7 +1182,11 @@ function renderPromptCards(gridId, prompts, type){
           <div class="pc-caption">${p.caption||''}</div>
         </div>
         <div class="gemini-img-wrap">
-          <div class="pc-label" style="color:#4285f4;margin-bottom:6px">🎨 Gemini 이미지 자동 생성</div>
+          <div class="pc-label" style="color:#4285f4;margin-bottom:4px">🎨 Gemini 이미지 자동 생성</div>
+          <div style="font-size:10px;color:var(--tx3);background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:6px 9px;margin-bottom:6px;line-height:1.5">
+            <span style="color:var(--tl);font-weight:600">프롬프트:</span> ${p.prompt_gpt||p.prompt_en||''}<br>
+            <span style="color:var(--am);font-weight:600">캡션:</span> ${p.caption||''}
+          </div>
           <button class="gemini-gen-btn" id="${uniqueId}-gbtn" onclick="generateGeminiImage('${uniqueId}')">🎨 Gemini로 이미지 생성</button>
           <img id="${uniqueId}-gimg" class="generated-img" alt="생성된 이미지">
           <button class="img-dl-btn" id="${uniqueId}-gdl">💾 이미지 다운로드</button>
@@ -1208,7 +1223,10 @@ async function generateGeminiImage(uid) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({apiKey: key, prompt: prompt})
     });
-    const data = await r.json();
+    const rawText = await r.text();
+    let data;
+    try { data = JSON.parse(rawText); }
+    catch(pe) { toast('❌ Gemini 서버 오류: 서버를 재시작해 주세요 (응답이 HTML)'); btn.disabled=false; btn.textContent='🎨 Gemini로 이미지 생성'; return; }
     if (data.imageData) {
       const mtype = data.mimeType || 'image/png';
       const src = 'data:' + mtype + ';base64,' + data.imageData;

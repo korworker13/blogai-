@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s --connect-timeout 2 http://localhost:3000/)"
+      "Bash(curl -s --connect-timeout 2 http://localhost:3000/)",
+      "Bash(node -e \":*)",
+      "Bash(cmd.exe /c \"taskkill /F /IM node.exe /T\")",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(cmd.exe /c \"for /f \"\"tokens=5\"\" %a in \\(''netstat -ano ^| findstr :3000 ^| findstr LISTENING''\\) do @echo PID=%a\")"
     ]
   }
 }
