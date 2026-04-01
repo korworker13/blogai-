@@ -68,7 +68,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Gemini API
+  // Gemini API (gemini-1.5-flash)
   if (req.method === 'POST' && req.url === '/api/gemini') {
     const { apiKey, prompt, max_tokens } = await readBody(req);
     const key = apiKey || process.env.GEMINI_API_KEY;
@@ -76,20 +76,70 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const body = {
-        model: 'text-bison-001',
-        prompt: {
-          text: prompt || ''
-        },
-        temperature: 0.2,
-        max_output_tokens: max_tokens || 300
+        contents: [{ parts: [{ text: prompt || '' }] }],
+        generationConfig: { maxOutputTokens: max_tokens || 300, temperature: 0.2 }
       };
-      const result = await httpsPost('generativelanguage.googleapis.com', '/v1beta2/models/text-bison-001:generate?key=' + encodeURIComponent(key), {}, JSON.stringify(body));
+      const result = await httpsPost('generativelanguage.googleapis.com',
+        `/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+        {}, JSON.stringify(body));
       let text = '';
-      if (result && result.candidates && result.candidates[0] && result.candidates[0].output) {
-        text = result.candidates[0].output;
+      if (result && result.candidates && result.candidates[0] &&
+          result.candidates[0].content && result.candidates[0].content.parts) {
+        text = result.candidates[0].content.parts.map(p => p.text || '').join('');
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ text, raw: result }));
+    } catch (e) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // Gemini 이미지 생성 API (gemini-2.0-flash-exp)
+  if (req.method === 'POST' && req.url === '/api/gemini-image') {
+    const { apiKey, prompt } = await readBody(req);
+    const key = apiKey || process.env.GEMINI_API_KEY;
+    if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
+
+    try {
+      const body = {
+        contents: [{ parts: [{ text: prompt || '' }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+      };
+      const result = await httpsPost('generativelanguage.googleapis.com',
+        `/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${encodeURIComponent(key)}`,
+        {}, JSON.stringify(body));
+
+      let imageData = null, mimeType = 'image/png';
+      if (result && result.candidates && result.candidates[0] && result.candidates[0].content) {
+        for (const part of result.candidates[0].content.parts || []) {
+          if (part.inlineData) { imageData = part.inlineData.data; mimeType = part.inlineData.mimeType || 'image/png'; break; }
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ imageData, mimeType, raw: result.error || undefined }));
+    } catch (e) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // 이미지 파일 저장 API
+  if (req.method === 'POST' && req.url === '/api/save-image') {
+    const { imageData, mimeType, filename } = await readBody(req);
+    const today = new Date().toISOString().slice(0, 10);
+    const saveDir = path.join(SAVE_BASE, today, '이미지');
+    try {
+      ensureDir(saveDir);
+      const ext = (mimeType || '').includes('jpeg') ? '.jpg' : '.png';
+      const fname = filename || `gemini-image-${Date.now()}${ext}`;
+      const buffer = Buffer.from(imageData, 'base64');
+      const fullPath = path.join(saveDir, fname);
+      fs.writeFileSync(fullPath, buffer);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, path: fullPath }));
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));

@@ -193,6 +193,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   .mob-nav{display:flex}
   body{padding-bottom:62px}
 }
+/* 의견 입력 힌트 */
+.opinion-hint{font-size:10px;color:var(--tl);margin-top:3px;line-height:1.5}
+/* Gemini 이미지 생성 */
+.gemini-img-wrap{border-top:1px solid var(--bd);padding-top:10px;margin-top:8px}
+.gemini-gen-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border-radius:var(--rs);border:none;background:linear-gradient(135deg,#4285f4,#0f9d58);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.gemini-gen-btn:hover{opacity:.88}
+.gemini-gen-btn:disabled{opacity:.4;cursor:not-allowed}
+.generated-img{width:100%;border-radius:var(--rs);margin-top:8px;border:1px solid var(--bd);display:none}
+.img-dl-btn{display:none;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px;border-radius:var(--rs);border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.07);color:var(--gr);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px}
+.img-dl-btn.on{display:flex}
+.gemini-all-btn{display:block;width:100%;padding:11px;border-radius:var(--r);border:none;background:linear-gradient(135deg,#4285f4,#0f9d58);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:14px;transition:all .2s}
+.gemini-all-btn:hover{opacity:.88}
+.gemini-all-btn:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -260,7 +273,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <div style="font-size:11px;color:var(--ts);font-weight:600;margin-bottom:5px">✈️ 티스토리 여행 키워드</div>
     <div class="fld"><input type="text" id="tsKw" placeholder="예: 전주 한옥마을 당일치기 코스"></div>
     <div class="r2" style="margin-top:5px">
-      <div class="fld"><select id="tsKwCat"><option>국내여행·관광정보</option><option>해외여행·관광정보</option></select></div>
+      <div class="fld"><select id="tsKwCat">
+        <option>국내여행·관광정보</option>
+        <option>해외여행·관광정보</option>
+        <option>정부지원금·복지</option>
+        <option>생활정보</option>
+        <option>금융·재테크</option>
+        <option>건강·의료</option>
+        <option>육아·교육</option>
+        <option>이슈·트렌드</option>
+      </select></div>
       <div class="fld" style="display:flex;align-items:flex-end"><button class="btn-sm" id="tsKwBtn" onclick="fetchKw()" style="width:100%;justify-content:center">✦ 추천</button></div>
     </div>
     <div class="chips" id="tsChips"></div>
@@ -283,11 +305,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   </div>
   <div class="fld" style="margin-top:6px"><label>경험 유형 선택</label>
     <div class="exp-select">
-      <button type="button" class="exp-btn" data-exp="direct" onclick="setExperienceType('direct')">직접 경험</button>
-      <button type="button" class="exp-btn" data-exp="indirect" onclick="setExperienceType('indirect')">지인 간접 경험</button>
+      <button type="button" class="exp-btn" data-exp="direct" onclick="setExperienceType('direct')">내 경험</button>
+      <button type="button" class="exp-btn" data-exp="indirect" onclick="setExperienceType('indirect')">지인 주변 경험</button>
       <button type="button" class="exp-btn on" data-exp="mixed" onclick="setExperienceType('mixed')">혼합</button>
     </div>
     <input type="hidden" id="experienceType" value="mixed">
+  </div>
+  <div class="fld" style="margin-top:6px"><label>나의 추가 의견 <span style="color:var(--tl);font-size:10px">(네이버용)</span></label>
+    <textarea id="opinionNv" placeholder="예: 직접 신청해봤는데 서류가 생각보다 간단했어요. 주민등록등본 1부면 충분했고..." style="min-height:52px;font-size:12px"></textarea>
+    <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
+  </div>
+  <div class="fld" style="margin-top:6px"><label>나의 추가 의견 <span style="color:var(--ts);font-size:10px">(티스토리용)</span></label>
+    <textarea id="opinionTs" placeholder="예: 현장에서 줄이 꽤 길었어요. 주차는 1km 떨어진 공영주차장 추천. 오전 일찍 가면 한산해요." style="min-height:52px;font-size:12px"></textarea>
+    <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
   </div>
   <div class="fld" style="margin-top:6px"><label>이미지 수</label>
     <input type="number" id="imgCount" min="1" max="10" value="4"></div>
@@ -389,11 +419,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <!-- 사용 방법 안내 -->
     <div class="tool-guide">
       <b>🖼 이미지 프롬프트 사용법</b><br>
+      <b>🤖 Gemini 자동생성</b>: 각 카드 하단 버튼으로 즉시 생성 + 다운로드<br>
       <b>미드저니</b>: <code>/imagine</code> 뒤에 영어 프롬프트 붙여넣기<br>
       <b>ChatGPT</b>: "이 이미지 만들어줘" + 한국어 프롬프트 붙여넣기<br>
       <b>Canva AI</b>: 한국어 프롬프트 그대로 붙여넣기<br>
-      <b>로컬 PC</b>: 바탕화면 블로그 폴더 → 이미지_프롬프트_가이드.txt 파일에 전체 저장됨
+      <b>로컬 PC</b>: 바탕화면 블로그 폴더 → 이미지 폴더에 자동 저장
     </div>
+    <button class="gemini-all-btn" id="geminiAllBtn" onclick="generateAllGeminiImages()">🎨 Gemini로 전체 이미지 한번에 생성</button>
 
     <!-- 네이버 이미지 프롬프트 -->
     <div class="prompt-section">
@@ -485,6 +517,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 let opts=['경험담','FAQ','핵심 요약표','체크리스트'];
 let fixTarget='nv';
 let gd={ts:'',nv:'',nvPrompts:[],tsPrompts:[]};
+let allPromptData={};
 let schedTimer=null,schedActive=false;
 let isLocal=false; // 로컬/Vercel 자동 감지
 let previousTsKeywords={}; // {카테고리: [이전 추천 키워드들]}
@@ -601,11 +634,10 @@ async function tavilySearch(query){
 async function geminiSearch(query){
   const key=document.getElementById('geminiKey').value.trim();if(!key)return null;
   try{
-    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:300})});
+    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:600})});
     const d=await r.json();
     if(d.error) return null;
     if(d.text) return d.text;
-    if(d.candidates && d.candidates[0] && d.candidates[0].output) return d.candidates[0].output;
     return null;
   }catch(e){return null;}
 }
@@ -636,9 +668,10 @@ async function fetchKw(){
       excludeList=`\n\n⚠️ 다음 키워드는 이미 추천했으니 다른 것으로: ${previousTsKeywords[cat].slice(0,5).join(', ')}`;
     }
     
+    const isTravelCat = /여행|관광/.test(cat);
     if(userKeyword){
-      // 사용자가 입력한 키워드가 있으면: 해당 키워드 기반 추천 (더 엄격한 관련성 조건)
-      prompt=`한국 여행 블로그 SEO 전문가.
+      if(isTravelCat){
+        prompt=`한국 여행 블로그 SEO 전문가.
 
 [기본 키워드] "${userKeyword}"
 
@@ -646,16 +679,33 @@ async function fetchKw(){
 
 ★ 중요한 조건:
 - 기본 키워드와 같은 여행지/지역/코스 테마여야 함
-- 기본 키워드의 핵심 여행 주제와 크게 벗어나면 안 됨
 - 구체적 여행지/코스/맛집/숙소 중심
-- 검색경쟁 낮고 구글/네이버 검색량 높은 것
+- 검색경쟁 낮고 네이버 검색량 높은 것
 - 실제로 존재하는 장소/코스
 - 2026년 현재 검색되는 현실적인 키워드만${excludeList}
 
 반드시 JSON 배열 형식만 반환: ["키워드1",...,"키워드10"]`;
+      }else{
+        prompt=`한국 블로그 SEO 전문가.
+
+[기본 키워드] "${userKeyword}" | [카테고리] ${cat}
+
+위 키워드와 직접 연관된 "${cat}" 분야 롱테일 키워드 10개를 찾아주세요.
+
+★ 중요한 조건:
+- 기본 키워드와 의미적으로 연관된 것만
+- 검색량 높고 고단가(대출, 보험, 카드, 재테크, 세금, 지원금 관련이면 우선)
+- 정보성·시의성 있는 2026년 현실적 키워드
+- 실제로 검색되는 것만${excludeList}
+
+반드시 JSON 배열 형식만 반환: ["키워드1",...,"키워드10"]`;
+      }
     }else{
-      // 빈 입력: 기존 임의 추천 로직
-      prompt=`한국 여행 블로그 SEO 전문가. "${cat}" 2026년 실제 검색 롱테일 키워드 10개.\n구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+      if(isTravelCat){
+        prompt=`한국 여행 블로그 SEO 전문가. "${cat}" 2026년 실제 검색 롱테일 키워드 10개.\n구체적 여행지/코스/맛집/숙소, 검색경쟁 낮음${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+      }else{
+        prompt=`한국 블로그 SEO 전문가. "${cat}" 카테고리 2026년 애드포스트 수익에 유리한 롱테일 키워드 10개.\n조건: 검색량 높음, 고단가(대출/보험/카드/재테크/세금/지원금 연관 우선), 정보성, 시의성 있음${excludeList}\nJSON 배열만: ["키워드1",...,"키워드10"]`;
+      }
     }
     
     const t=await claude(prompt,null,600);
@@ -754,6 +804,8 @@ async function generateAll(){
   const optStr=opts.join(', ');
   const memoNv=document.getElementById('memoNv').value.trim();
   const memoTs=document.getElementById('memoTs').value.trim();
+  const opinionNv=document.getElementById('opinionNv').value.trim();
+  const opinionTs=document.getElementById('opinionTs').value.trim();
   const fNvKw=nvKw||tsKw;
   const fTsKw=tsKw||nvKw;
 
@@ -786,61 +838,95 @@ async function generateAll(){
       toast('✅ 실시간 정보 수집 완료!');
     }
 
+    /* ① - 2 나의 의견 보완 (검색 후 200자 추가) */
+    let augOpinionNv='', augOpinionTs='';
+    if(opinionNv){
+      setProg(10,'💭 나의 의견 보완 중 (네이버)...');
+      try{
+        let opCtxNv='';
+        if(tk){const s=await tavilySearch(fNvKw+' '+opinionNv.slice(0,30));if(s)opCtxNv=s.slice(0,600);}
+        else if(gk){const s=await geminiSearch(fNvKw+' '+opinionNv.slice(0,30));if(s)opCtxNv=s.slice(0,600);}
+        const opCtxPartNv = opCtxNv ? '\n\n관련 검색:\n'+opCtxNv : '';
+        const opPromptNv = '블로거의 의견: "'+opinionNv+'"\n키워드: '+fNvKw+opCtxPartNv+'\n\n위 의견을 블로그에 자연스럽게 녹일 수 있도록, 관련 정보를 보완해서 200자 내외로 다시 작성해주세요. 원래 경험은 살리고 구체적 정보(수치/사례/팁) 추가. 보완된 내용만 반환.';
+        augOpinionNv=await claude(opPromptNv, null, 600);
+      }catch(e){augOpinionNv=opinionNv;}
+    }
+    if(opinionTs){
+      setProg(11,'💭 나의 의견 보완 중 (티스토리)...');
+      try{
+        let opCtxTs='';
+        if(tk){const s=await tavilySearch(fTsKw+' '+opinionTs.slice(0,30));if(s)opCtxTs=s.slice(0,600);}
+        else if(gk){const s=await geminiSearch(fTsKw+' '+opinionTs.slice(0,30));if(s)opCtxTs=s.slice(0,600);}
+        const opCtxPartTs = opCtxTs ? '\n\n관련 검색:\n'+opCtxTs : '';
+        const opPromptTs = '블로거의 의견: "'+opinionTs+'"\n키워드: '+fTsKw+opCtxPartTs+'\n\n위 의견을 블로그에 자연스럽게 녹일 수 있도록, 관련 정보를 보완해서 200자 내외로 다시 작성해주세요. 원래 경험은 살리고 구체적 정보(수치/사례/팁) 추가. 보완된 내용만 반환.';
+        augOpinionTs=await claude(opPromptTs, null, 600);
+      }catch(e){augOpinionTs=opinionTs;}
+    }
+
     /* ② 네이버 글 */
     setProg(12,'📱 네이버 블로그 글 작성 중...');
     const nvMemo=memoNv?`\n\n━━ 블로그 주인 메모 (반드시 글에 녹여낼 것) ━━\n${memoNv}\n━━ 끝 ━━`:'';
-    const expGuide = expType==='direct'
-      ? '경험담은 직접 경험(제가 ~) 위주로 작성, 간접 경험은 최소화하세요.'
-      : expType==='indirect'
-      ? '경험담은 지인 경험(친구가/동료가 ~) 위주로 작성, 직접 경험은 최소화하세요.'
-      : '경험담은 직접 경험(제가 ~)과 지인 경험(친구가 ~)을 교차하며 자연스럽게 표현하세요.';
+    const nvOpinion=augOpinionNv?`\n\n━━ 블로그 주인 추가 의견 (글 중간에 자연스럽게 녹여낼 것) ━━\n${augOpinionNv}\n━━ 끝 ━━`:'';
+    let expGuide = '';
+    if(expType==='direct') expGuide='경험은 내 직접 경험(제가 ~) 위주로, 각 소제목 안에 1-2문장씩 자연스럽게 삽입';
+    else if(expType==='indirect') expGuide='경험은 지인/주변 사람 경험(친구가/동료가 ~) 위주로, 각 소제목 안에 1-2문장씩 자연스럽게 삽입';
+    else expGuide='직접 경험(제가 ~)과 지인 경험(친구가 ~)을 교차하며, 각 소제목 안에 자연스럽게 삽입';
     const nvText=await claude(
-`[네이버 블로그 — 실시간 이슈 반영 + 모바일 최적화]
+`[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]
 키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개
 
-핵심 규칙:
-- 검색 결과 최신 뉴스·이유·배경을 반드시 본문에 반영 (단순 사전적 설명 금지)
-- '업데이트/정책/이벤트' 이슈 + 실제 정보(수치/조건/절차) 결합
-- 고단가 광고 키워드(대출, 보험, 카드, 주식, 재테크, 세금 등)는 단지 수익 연관 키워드로서 ‘선택 옵션’이며, 여행 리뷰 본문에서는 반드시 직접 언급하지 않아도 됨
-- 여행 리뷰에는 '여행 동선, 숙소, 코스, 추천 팁, 현장 리포트' 중심으로 기술
-- 황금 키워드 및 카테고리를 콘텐츠 중간에 배치하고 제목/소제목에 함유
-- 클릭률 높이기: 앞부분에 문제/해결/혜택(30초 컬 유도) 배치
-- 체류시간 증가: 정보성 리스트/FAQ(텍스트) 강조 + 관련 카테고리 키워드 조합
-- 한 문단 = 최대 2~3줄 (50자 이내) — 모바일 핵심
+★ 애드포스트 수익 전략 (필수 준수):
+
+【1. CTR 클릭률 극대화】
+- 제목: 숫자("3가지", "월 30만원") + 손해/혜택/궁금증 자극 표현 필수
+- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)
+- 각 소제목도 클릭욕구 자극하는 표현 사용
+
+【2. 황금 키워드 + 고단가 키워드 필수 포함】
+- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치
+- 대출, 보험, 카드, 주식, 재테크, 세금, 환급, 지원금, 복지, 청약 중 관련 키워드를 본문에 자연스럽게 포함
+- 카테고리 "${nvKwCat}" 관련 고단가 키워드를 소제목 또는 문단에 배치
+- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용
+
+【3. 이슈성 + 정보성 결합】
+- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)
+- 중반부: 구체적 수치/조건/절차/혜택 정보
+- 후반부: 독자 행동 유도(신청, 비교, 확인 등)
+
+【4. 체류시간 극대화】
+- 소제목 6개 이상 (각각 독립적 정보 단위)
+- FAQ 5개 이상 (실제 검색 의도와 일치)
+- 단계별 설명 또는 비교 목록 포함
+- 관련 카테고리 키워드로 추가 읽을거리 유도
+
+【5. 경험 자연스럽게 녹이기】
+- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입
+- ${expGuide}
+- 경험 직후 바로 관련 팁/정보로 연결
+
+기술 규칙:
+- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심
 - 표(table) 절대 금지
 - 단락 사이 빈 줄 필수
-- ★ 마크다운 문법 절대 금지 (##, #, -, *, 따옴표 등 마크다운 기호 사용 금지!)
-- ★ 순수 텍스트 + 이모지만 사용
+- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)
+- 순수 텍스트 + 이모지만 사용
 
-우측 메모(사용자 입력) 처리:
-- 입력된 내용을 그대로 넣지 않고, 관련 인터넷 기사/통계/사례를 추가 조사해서 2~3배 풍부하게 확장
-- 핵심 문장 (키워드 포함) 2-3개로 재작성하고, 상세 설명 300자 이상 추가
-
-첫 줄: 제목: [클릭 유도형 제목]
-도입부 3줄: 공감 + 읽어야 하는 이유
-본문: 이모지 소제목 + 짧은 문단(각 문단 2~3줄 이하, 최소 6개 이상 분할)
-- 소제목 5개 이상 포함, 각 소제목 앞에 이모지 사용
-- 소제목 메타정보로 독자가 바로 이해할 수 있도록
-${expGuide}
-- 직접 경험 예: "제가 지난 주에 ..." (100~150자)
-- 간접 경험 예: "친구가 ..." (100~150자)
-마무리: 댓글/공감/이웃추가 유도
-[이미지N 삽입 위치] ${imgCount}개 본문 중간
+형식:
+첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]
+도입부 3줄: 공감 + 이슈 + 해결 암시
+소제목 6개+: 이모지 + 자극적이고 정보적인 소제목
+각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입
+마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가
+[이미지N 삽입 위치] ${imgCount}개 본문 중간 분산
 태그 20개 맨 아래 (# 없이 줄바꿈)
-HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
-      `대한민국 최고 블로그 SEO 전문가, ${nvKwCat} 전문 네이버 블로거 ${nick}.`,5200);
+HTML 태그 없이 순수 텍스트${nvMemo}${nvOpinion}${nvCtx}`,
+      `대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`,5500);
     
     // ★ 마크다운 형식/깨짐 문자 후처리 (혹시 모를 ##, #, -, **, � 제거)
     let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
     // 문단 단위로 재정비 (덩어리 방지)
     cleanNvText = cleanNvText.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>p.replace(/([.?!])\s*(?=[^\n])/g,'$1\n')).join('\n\n');
-    // 여행 템플릿에서는 불필요한 금융 키워드 제거
-    if(/여행/.test(fNvKw + fTsKw + nvKwCat + tsBlogType)){
-      cleanNvText = cleanNvText.replace(/\b(세금|보험|보험료|대출|카드|재테크|금융|재정|세액|고정비)\b/g, '');
-      cleanNvText = cleanNvText.replace(/\s{2,}/g, ' ').trim();
-    }
-    // 직접/간접 경험 표현이 포함되지 않았더라도, 자연스럽게 본문에 녹아들 수 있도록 유도
-    // (명시적 문구 추가는 하지 않음)
+    // 고단가 키워드는 보존 (애드포스트 전략)
     gd.nv = cleanNvText;
     document.getElementById('nvOut').textContent=cleanNvText;
     document.getElementById('ok-nv').classList.add('on');
@@ -848,6 +934,7 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
     /* ③ 티스토리 글 */
     setProg(35,'✈️ 티스토리 HTML 작성 중...');
     const tsMemo=memoTs?`\n\n━━ 블로그 주인 메모 (경험담에 반드시 녹여낼 것) ━━\n${memoTs}\n━━ 끝 ━━`:'';
+    const tsOpinion=augOpinionTs?`\n\n━━ 블로그 주인 추가 의견 (글 중간에 자연스럽게 녹여낼 것) ━━\n${augOpinionTs}\n━━ 끝 ━━`:'';
     const tsText=await claude(
 `[티스토리 여행 블로그 HTML — 명확한 줄바꿈과 구조화 필수]
 키워드: "${fTsKw}" | 분야: ${tsBlogType} | 네이버 카테고리: ${nvKwCat} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개
@@ -886,8 +973,8 @@ HTML 태그 없이 순수 텍스트${nvMemo}${nvCtx}`,
 14. <!-- TISTORY-TAGS: 태그1 태그2 ... 태그10 -->
 15. ★ 마크다운/HTML 오류 방지: "�" 등 깨짐문자 제거, 텍스트 직접 삽입시 줄바꿈 유지
 
-전체 ${tsChar}자+${tsMemo}${tsCtx}`,
-      `여행 전문 티스토리 블로거 ${nick}.`,5500);
+전체 ${tsChar}자+${tsMemo}${tsOpinion}${tsCtx}`,
+      `여행 및 생활정보 전문 티스토리 블로거 ${nick}.`,5500);
     
     // ★ <article> / </article> 태그 제거, 마크다운 강조 ** 제거, 깨짐 문자 � 제거
     let cleanTsText = tsText.replace(/<article>/g, '').replace(/<\/article>/g, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
@@ -947,6 +1034,10 @@ JSON 배열만 반환:
       if(!Array.isArray(allPrompts)) allPrompts=[allPrompts];
     }catch(e){
       console.error('프롬프트 파싱 오류',e);
+      // JSON 파싱 실패시, raw 텍스트를 UI에 직접 보여주도록 대체
+      const fallback = promptRaw.replace(/```/g,'').trim();
+      document.getElementById('pgrid-nv').innerHTML = `<div style="color:var(--tx3);font-size:13px;white-space:pre-wrap;line-height:1.5;">이미지 프롬프트 JSON 파싱 실패, 원본 텍스트:<br><br>${fallback}</div>`;
+      document.getElementById('pgrid-ts').innerHTML = `<div style="color:var(--tx3);font-size:13px;white-space:pre-wrap;line-height:1.5;">이미지 프롬프트 JSON 파싱 실패, 원본 텍스트:<br><br>${fallback}</div>`;
       allPrompts=[];
     }
 
@@ -1079,7 +1170,14 @@ function renderPromptCards(gridId, prompts, type){
         <div style="margin-top:8px;">
           <div class="pc-caption">${p.caption||''}</div>
         </div>
+        <div class="gemini-img-wrap">
+          <div class="pc-label" style="color:#4285f4;margin-bottom:6px">🎨 Gemini 이미지 자동 생성</div>
+          <button class="gemini-gen-btn" id="${uniqueId}-gbtn" onclick="generateGeminiImage('${uniqueId}')">🎨 Gemini로 이미지 생성</button>
+          <img id="${uniqueId}-gimg" class="generated-img" alt="생성된 이미지">
+          <button class="img-dl-btn" id="${uniqueId}-gdl">💾 이미지 다운로드</button>
+        </div>
       </div>`;
+    allPromptData[uniqueId] = p;
     grid.appendChild(card);
   });
 }
@@ -1088,6 +1186,83 @@ function copyPromptText(elementId){
   const textarea=document.getElementById(elementId);
   if(!textarea){toast('⚠ 복사 오류');return;}
   navigator.clipboard.writeText(textarea.value).then(()=>toast('📋 프롬프트 복사됐어요!')).catch(err=>toast('❌ 복사 실패'));
+}
+
+
+/* ═══ Gemini 이미지 자동 생성 ═══ */
+async function generateGeminiImage(uid) {
+  const key = document.getElementById('geminiKey').value.trim();
+  if (!key) { toast('⚠ Gemini API 키를 입력해주세요'); return; }
+  const p = allPromptData[uid];
+  if (!p) { toast('⚠ 프롬프트 데이터 없음'); return; }
+  const btn = document.getElementById(uid + '-gbtn');
+  const imgEl = document.getElementById(uid + '-gimg');
+  const dlBtn = document.getElementById(uid + '-gdl');
+  if (!btn || !imgEl || !dlBtn) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ 생성 중...';
+  try {
+    const prompt = p.prompt_gpt || p.prompt_en || p.prompt_ko || p.title || '';
+    const r = await fetch('/api/gemini-image', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({apiKey: key, prompt: prompt})
+    });
+    const data = await r.json();
+    if (data.imageData) {
+      const mtype = data.mimeType || 'image/png';
+      const src = 'data:' + mtype + ';base64,' + data.imageData;
+      imgEl.src = src;
+      imgEl.style.display = 'block';
+      dlBtn.classList.add('on');
+      dlBtn.onclick = function() {
+        const a = document.createElement('a');
+        a.href = src;
+        a.download = p.filename || 'gemini-image.png';
+        a.click();
+        toast('💾 이미지 다운로드!');
+      };
+      if (isLocal) {
+        try {
+          await fetch('/api/save-image', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({imageData: data.imageData, mimeType: mtype, filename: p.filename})
+          });
+          toast('✅ 이미지 생성 + 바탕화면 저장 완료!');
+        } catch(se) { toast('✅ 이미지 생성 완료! (저장 실패: ' + se.message + ')'); }
+      } else {
+        toast('✅ 이미지 생성 완료! 다운로드 버튼을 눌러주세요');
+      }
+    } else {
+      const errMsg = (data.raw && data.raw.message) ? data.raw.message : (data.error || '지원하지 않는 API 키 또는 권한 없음');
+      toast('❌ 이미지 생성 실패: ' + errMsg);
+    }
+  } catch(e) {
+    toast('❌ Gemini 오류: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎨 Gemini로 이미지 생성';
+  }
+}
+
+async function generateAllGeminiImages() {
+  const key = document.getElementById('geminiKey').value.trim();
+  if (!key) { toast('⚠ Gemini API 키를 입력해주세요'); return; }
+  const keys = Object.keys(allPromptData);
+  if (!keys.length) { toast('⚠ 먼저 글과 프롬프트를 생성해주세요'); return; }
+  const allBtn = document.getElementById('geminiAllBtn');
+  if (allBtn) { allBtn.disabled = true; allBtn.textContent = '⏳ 전체 이미지 생성 중...'; }
+  let success = 0, fail = 0;
+  for (const uid of keys) {
+    try {
+      await generateGeminiImage(uid);
+      success++;
+      await new Promise(res => setTimeout(res, 2500));
+    } catch(e) { fail++; }
+  }
+  if (allBtn) { allBtn.disabled = false; allBtn.textContent = '🎨 Gemini로 전체 이미지 한번에 생성'; }
+  toast('✅ 완료! 성공: ' + success + '개 / 실패: ' + fail + '개');
 }
 
 /* ═══ 수정 요청 ═══ */
