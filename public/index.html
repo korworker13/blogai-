@@ -139,6 +139,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .tool-guide b{color:var(--pu)}
 .tool-guide code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--tl)}
 
+.exp-select{display:flex;gap:6px}
+.exp-btn{flex:1;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--tx2);font-size:12px;cursor:pointer;transition:all .14s}
+.exp-btn.on{background:rgba(79,142,247,.12);color:var(--ac);border-color:var(--ac)}
+
 /* 수정요청 */
 .fix-hint{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--tx2);line-height:1.7;margin-bottom:12px}
 .fix-hint b{color:var(--am)}
@@ -278,13 +282,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <textarea id="memoTs" placeholder="예: 작년 가을 다녀왔어요. 주차는 효자동 공영주차장 추천. 주말 오전 일찍 가야 인파 덜해요."></textarea>
   </div>
   <div class="fld" style="margin-top:6px"><label>경험 유형 선택</label>
-    <div style="display:flex;gap:8px;">
-      <label style="font-size:12px;"><input type="radio" name="experienceType" value="direct" checked> 직접 경험</label>
-      <label style="font-size:12px;"><input type="radio" name="experienceType" value="indirect"> 지인 간접 경험</label>
-      <label style="font-size:12px;"><input type="radio" name="experienceType" value="mixed"> 혼합</label>
+    <div class="exp-select">
+      <button type="button" class="exp-btn" data-exp="direct" onclick="setExperienceType('direct')">직접 경험</button>
+      <button type="button" class="exp-btn" data-exp="indirect" onclick="setExperienceType('indirect')">지인 간접 경험</button>
+      <button type="button" class="exp-btn on" data-exp="mixed" onclick="setExperienceType('mixed')">혼합</button>
     </div>
+    <input type="hidden" id="experienceType" value="mixed">
   </div>
-    <div class="fld"><label>네이버 글자수</label>
+  <div class="fld" style="margin-top:6px"><label>이미지 수</label>
+    <input type="number" id="imgCount" min="1" max="10" value="4"></div>
+  <div class="fld"><label>네이버 글자수</label>
       <select id="nvChar"><option value="1200">1,200자+</option><option value="1500" selected>1,500자+</option></select></div>
     <div class="fld"><label>티스토리 글자수</label>
       <select id="tsChar"><option value="2000">2,000자+</option><option value="2500" selected>2,500자+</option><option value="3000">3,000자+</option></select></div>
@@ -531,6 +538,10 @@ function addLog(m,cls='linf'){
 }
 function setFT(t){fixTarget=t;['nv','ts'].forEach(k=>document.getElementById('ft-'+k).classList.remove('on'));document.getElementById('ft-'+t).classList.add('on');}
 function setFTY(btn,txt){document.querySelectorAll('.ftybtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('fixReq').value=txt;}
+function setExperienceType(v){
+  document.getElementById('experienceType').value=v;
+  document.querySelectorAll('.exp-btn').forEach(b=>b.classList.toggle('on',b.dataset.exp===v));
+}
 
 /* ═══ KEY SAVE ═══ */
 function loadKeys(){
@@ -755,7 +766,7 @@ async function generateAll(){
   ['ok-ts','ok-nv'].forEach(id=>document.getElementById(id).classList.remove('on'));
 
   try{
-    const expType = document.querySelector('input[name="experienceType"]:checked')?.value || 'mixed';
+    const expType = document.getElementById('experienceType')?.value || 'mixed';
     /* ① 실시간 검색 */
     let nvCtx='',tsCtx='';
     const tk=document.getElementById('tavilyKey').value.trim();
