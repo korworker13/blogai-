@@ -27,12 +27,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
 .ksaved{font-size:11px;color:var(--gr);display:none;align-items:center;gap:3px}
 .ksaved.on{display:flex}
-.wrap{display:flex;flex:1;overflow:hidden}
-.sb{width:334px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.wrap{display:flex;flex:1;overflow:hidden;align-items:stretch}
+.sb{width:334px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;position:sticky;top:52px;max-height:calc(100vh - 52px)}
 .sb-sc{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
 .sb-sc::-webkit-scrollbar{width:3px}
 .sb-sc::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:calc(100vh - 52px)}
+.out-area{flex:1;overflow-y:auto;height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center}
 .card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px}
 .chd{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:7px;color:var(--tx3)}
 .cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -167,7 +168,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .hi-del:hover{color:var(--rd)}
 .guide{background:rgba(79,142,247,.04);border:1px solid rgba(79,142,247,.13);border-radius:var(--rs);padding:8px 11px;font-size:11px;color:var(--tx2);line-height:1.7;margin-top:7px}
 .guide b{color:var(--ac)}
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:240px;color:var(--tx3);gap:9px;text-align:center;padding:20px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:240px;color:var(--tx3);gap:9px;text-align:center;padding:20px;position:relative;top:0;margin:auto}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);padding:10px 18px;font-size:13px;color:var(--tx);opacity:0;transition:all .25s;pointer-events:none;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:90vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:inline-block;vertical-align:middle}
@@ -745,6 +746,8 @@ async function generateAll(){
 
   const btn=document.getElementById('genBtn');
   btn.disabled=true;btn.textContent='⏳ 생성 중...';
+  document.querySelector('.out-area').scrollTop=0;
+  document.querySelector('.out-area').scrollIntoView({behavior:'smooth'});
   gd={ts:'',nv:'',nvPrompts:[],tsPrompts:[]};
   document.getElementById('saveBanner').classList.remove('on');
   ['ok-ts','ok-nv'].forEach(id=>document.getElementById(id).classList.remove('on'));
