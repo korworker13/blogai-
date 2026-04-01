@@ -54,6 +54,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Naver Search API
+  if (req.method === 'POST' && req.url === '/api/naver') {
+    const { clientId, clientSecret, query } = await readBody(req);
+    const id = clientId || process.env.NAVER_CLIENT_ID;
+    const secret = clientSecret || process.env.NAVER_CLIENT_SECRET;
+    if (!id || !secret) { res.writeHead(400); res.end(JSON.stringify({ error: '네이버 API 키 없음' })); return; }
+    try {
+      const options = {
+        hostname: 'openapi.naver.com', port: 443,
+        path: '/v1/search/news.json?query=' + encodeURIComponent(query) + '&display=5&sort=date',
+        method: 'GET',
+        headers: { 'X-Naver-Client-Id': id, 'X-Naver-Client-Secret': secret }
+      };
+      const result = await new Promise((resolve, reject) => {
+        const r = https.request(options, (resp) => {
+          let data = ''; resp.on('data', chunk => data += chunk);
+          resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
+        });
+        r.on('error', reject); r.end();
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
   // Tavily API
   if (req.method === 'POST' && req.url === '/api/tavily') {
     const { apiKey, query } = await readBody(req);
