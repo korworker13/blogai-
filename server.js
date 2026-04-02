@@ -115,35 +115,38 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 이미지 생성 API (imagen-3.0-generate-001)
+  // 이미지 생성 API (gemini-3.1-flash-image-preview / generateContent)
   if (req.method === 'POST' && req.url === '/api/gemini-image') {
     const { apiKey, prompt } = await readBody(req);
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
 
     try {
+      const modelName = 'gemini-3.1-flash-image-preview';
       const body = {
-        instances: [{ prompt: prompt || '' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: "16:9",
-          outputOptions: { mimeType: "image/jpeg", compressionQuality: 80 }
-        }
+        contents: [{ parts: [{ text: prompt || '' }] }],
+        generationConfig: { responseModalities: ['Text', 'Image'] }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
-        `/v1alpha/models/imagen-3.0-generate-001:predict?key=${encodeURIComponent(key)}`,
+        `/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
 
-      console.log('[Imagen] result keys:', result ? Object.keys(result) : 'null');
-      if (result && result.error) console.error('[Imagen API ERROR]', JSON.stringify(result.error));
-      let imageData = null, mimeType = 'image/png';
-      if (result && result.predictions && result.predictions[0]) {
-        imageData = result.predictions[0].bytesBase64Encoded;
-        mimeType = result.predictions[0].mimeType || 'image/png';
+      console.log(`[GeminiImage] model=${modelName} | error=${result?.error?.message||'none'}`);
+      if (result && result.error) console.error('[GeminiImage API ERROR]', JSON.stringify(result.error));
+
+      let imageData = null, mimeType = 'image/jpeg';
+      const parts = result?.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          imageData = part.inlineData.data;
+          mimeType = part.inlineData.mimeType || 'image/jpeg';
+          break;
+        }
       }
-      const imgErr = result && result.error
+
+      const imgErr = result?.error
         ? (result.error.message || JSON.stringify(result.error))
-        : (imageData ? null : '이미지 데이터 없음 (API 응답 확인 필요)');
+        : (imageData ? null : '이미지 데이터 없음');
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ imageData, mimeType, error: imgErr }));
     } catch (e) {

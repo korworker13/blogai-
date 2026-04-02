@@ -711,9 +711,10 @@ async function fetchHot(){
     const gk=document.getElementById('geminiKey').value.trim();
     if(tk||gk||document.getElementById('naverClientId').value.trim()){
       setProg(5,'🔍 실시간 트렌드 검색 중...');
-      const tRes = tk ? await tavilySearch(`${cat} 최신 이슈 뉴스 2026`) : null;
-      const gRes = gk ? await geminiSearch(`${cat} 최신 이슈 뉴스 2026`) : null;
-      const nRes = await naverSearch(`${cat} 최신 뉴스`);
+      const queryTarget = userKeyword ? userKeyword : cat;
+      const tRes = tk ? await tavilySearch(`${queryTarget} 최신 이슈 뉴스 2026`) : null;
+      const gRes = gk ? await geminiSearch(`${queryTarget} 최신 이슈 뉴스 2026`) : null;
+      const nRes = await naverSearch(`${queryTarget} 최신 뉴스`);
       if(tRes) ctx += `\n\n[실시간뉴스 - Tavily]\n${tRes.slice(0,1200)}\n[끝]`;
       if(nRes) ctx += `\n\n[실시간뉴스 - 네이버]\n${nRes.slice(0,1200)}\n[끝]`;
       if(gRes) ctx += `\n\n[실시간뉴스 - Gemini]\n${gRes.slice(0,800)}\n[끝]`;
