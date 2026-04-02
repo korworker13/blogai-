@@ -131,7 +131,7 @@ const server = http.createServer(async (req, res) => {
         }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
-        `/v1beta/models/gemini-3.1-flash-image-preview:predict?key=${encodeURIComponent(key)}`,
+        `/v1beta/models/imagen-3.0-generate-001:predict?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
 
       let imageData = null, mimeType = 'image/png';
