@@ -1119,6 +1119,11 @@ function renderPromptCards(gridId, prompts, type){
           <textarea id="${uniqueId}-gpt" style="display:none">${p.prompt_gpt||''}</textarea>
         </div>
         <div style="font-size:11px;color:var(--tx3);padding:5px 0;border-top:1px solid var(--bd);margin-top:4px">${p.caption||''}</div>
+        <div class="gemini-img-wrap">
+          <button class="gemini-gen-btn" id="${uniqueId}-gbtn" onclick="generateGeminiImage('${uniqueId}')">🎨 Gemini로 이미지 생성</button>
+          <img class="generated-img" id="${uniqueId}-gimg" alt="생성된 이미지">
+          <button class="img-dl-btn" id="${uniqueId}-gdl">💾 이미지 다운로드</button>
+        </div>
       </div>`;
     allPromptData[uniqueId] = p;
     grid.appendChild(card);
