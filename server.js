@@ -134,13 +134,18 @@ const server = http.createServer(async (req, res) => {
         `/v1beta/models/imagen-3.0-generate-001:predict?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
 
+      console.log('[Imagen] result keys:', result ? Object.keys(result) : 'null');
+      if (result && result.error) console.error('[Imagen API ERROR]', JSON.stringify(result.error));
       let imageData = null, mimeType = 'image/png';
       if (result && result.predictions && result.predictions[0]) {
         imageData = result.predictions[0].bytesBase64Encoded;
         mimeType = result.predictions[0].mimeType || 'image/png';
       }
+      const imgErr = result && result.error
+        ? (result.error.message || JSON.stringify(result.error))
+        : (imageData ? null : '이미지 데이터 없음 (API 응답 확인 필요)');
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ imageData, mimeType, raw: result.error || undefined }));
+      res.end(JSON.stringify({ imageData, mimeType, error: imgErr }));
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));

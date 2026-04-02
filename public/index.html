@@ -94,7 +94,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .tab.tst.on{color:var(--ts);border-bottom-color:var(--ts)}
 .tab.imt.on{color:var(--pu);border-bottom-color:var(--pu)}
 .tab.fixt.on{color:#f59e0b;border-bottom-color:#f59e0b}
-.out-area{flex:1;overflow-y:auto;padding:15px}
+.out-area{flex:1;overflow-y:auto;display:block;padding:15px;position:relative;}
 .out-area::-webkit-scrollbar{width:4px}
 .out-area::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 .pane{display:none}.pane.on{display:block}
@@ -1186,7 +1186,7 @@ async function generateGeminiImage(uid) {
         toast('✅ 이미지 생성 완료! 다운로드 버튼을 눌러주세요');
       }
     } else {
-      const errMsg = (data.raw && data.raw.message) ? data.raw.message : (data.error || '지원하지 않는 API 키 또는 권한 없음');
+      const errMsg = data.error || '지원하지 않는 API 키 또는 권한 없음';
       toast('❌ 이미지 생성 실패: ' + errMsg);
     }
   } catch(e) {
