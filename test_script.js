@@ -1,506 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BlogAI v10</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#080d18;--bg2:#0f1623;--bg3:#182030;--bg4:#1f2a3f;
-  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.13);
-  --tx:#dde5f2;--tx2:#8a9bb8;--tx3:#475a72;
-  --ac:#4f8ef7;--ac2:#1a5fe0;--acg:rgba(79,142,247,.11);
-  --gr:#22c55e;--am:#f59e0b;--rd:#ef4444;
-  --tl:#0ea5e9;--pu:#a855f7;--nv:#03c75a;--ts:#ff6c2f;
-  --r:13px;--rs:8px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.6;display:flex;flex-direction:column}
-.hdr{display:flex;align-items:center;gap:10px;padding:0 18px;height:52px;background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0}
-.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;background:linear-gradient(110deg,#60a5fa,#38bdf8 45%,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.ver{font-size:10px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:20px;background:rgba(79,142,247,.12);color:var(--ac);border:1px solid rgba(79,142,247,.22)}
-.mode-pill{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
-.mode-local{background:rgba(34,197,94,.12);color:var(--gr);border:1px solid rgba(34,197,94,.28)}
-.mode-vercel{background:rgba(79,142,247,.12);color:var(--ac);border:1px solid rgba(79,142,247,.28)}
-.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
-.ksaved{font-size:11px;color:var(--gr);display:none;align-items:center;gap:3px}
-.ksaved.on{display:flex}
-.wrap{display:flex;flex:1;overflow:hidden;align-items:stretch;position:relative}
-.sb{width:334px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;position:fixed;top:52px;left:0;bottom:0;height:calc(100vh - 52px);z-index:10}
-.sb-sc{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
-.sb-sc::-webkit-scrollbar{width:3px}
-.sb-sc::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:calc(100vh - 52px);margin-left:334px}
-.out-area{flex:1;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:15px;}
-.out-area::-webkit-scrollbar{width:4px}
-.out-area::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
-.card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:13px}
-.chd{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:7px;color:var(--tx3)}
-.cdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.cnum{font-size:10px;font-family:'JetBrains Mono',monospace;padding:1px 6px;border-radius:4px;background:var(--bg4);color:var(--tx2);margin-left:auto}
-.fld{margin-bottom:8px}.fld:last-child{margin-bottom:0}
-.fld label{display:block;font-size:11px;color:var(--tx2);margin-bottom:3px}
-.fld input,.fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:7px 10px;color:var(--tx);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none;resize:vertical}
-.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--ac)}
-.fld input[type=password]{font-family:'JetBrains Mono',monospace;font-size:12px}
-.fld textarea{min-height:60px;font-size:12px}
-.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
-.memo-card{background:linear-gradient(135deg,rgba(245,158,11,.07),rgba(251,191,36,.03));border:1px solid rgba(245,158,11,.22);border-radius:var(--r);padding:13px}
-.memo-hint{font-size:11px;color:var(--tx3);line-height:1.65;margin-top:6px}
-.memo-hint b{color:var(--am)}
-.tog{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;background:var(--acg);border:1px solid rgba(79,142,247,.16);border-radius:var(--rs);font-size:12px;color:var(--tx2);margin-top:7px}
-.tw{position:relative;width:36px;height:20px;flex-shrink:0}
-.tw input{opacity:0;width:100%;height:100%;position:absolute;cursor:pointer;z-index:1;margin:0}
-.ttrack{position:absolute;inset:0;background:var(--bd2);border-radius:10px;transition:background .2s}
-.tw input:checked+.ttrack{background:var(--ac)}
-.tthumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none}
-.tw input:checked~.tthumb{transform:translateX(16px)}
-.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
-.tag{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--bd);color:var(--tx2);cursor:pointer;background:var(--bg);transition:all .15s;user-select:none}
-.tag.on{background:rgba(79,142,247,.14);border-color:var(--ac);color:var(--ac)}
-.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
-.chip{font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--bd);color:var(--tx2);cursor:pointer;background:var(--bg);transition:all .15s}
-.chip:hover,.chip.sel{border-color:var(--tl);color:var(--tl);background:rgba(14,165,233,.09)}
-.chip-hot::before{content:'🔥 '}
-.chip-hot{border-color:rgba(245,158,11,.35)!important;color:var(--am)!important;background:rgba(245,158,11,.07)!important}
-.btn-gen{display:block;width:100%;padding:13px;border-radius:var(--r);border:none;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 4px 20px rgba(79,142,247,.28);transition:all .2s;margin-top:2px}
-.btn-gen:hover{transform:translateY(-1px)}
-.btn-gen:disabled{opacity:.4;transform:none;cursor:not-allowed}
-.btn-sm{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg3);color:var(--tx2);cursor:pointer;font-family:'Noto Sans KR',sans-serif;transition:all .15s;white-space:nowrap}
-.btn-sm:hover{border-color:var(--bd2);color:var(--tx)}
-.btn-hot{display:block;width:100%;padding:8px;border-radius:var(--rs);border:1px solid rgba(3,199,90,.28);background:rgba(3,199,90,.07);color:var(--nv);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:5px}
-.prog{margin-top:9px}
-.prog-track{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
-.prog-bar{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--tl));border-radius:2px;transition:width .4s ease}
-.prog-lbl{font-size:11px;color:var(--tx3);text-align:center;margin-top:4px;min-height:15px}
-.sched-card{background:linear-gradient(135deg,rgba(245,158,11,.05),rgba(251,191,36,.03));border:1px solid rgba(245,158,11,.18);border-radius:var(--r);padding:13px}
-.stimes{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
-.stime{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px}
-.stl{font-size:9px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px}
-.str{display:flex;align-items:center;justify-content:space-between}
-.next-box{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;display:none;margin-top:7px}
-.next-lbl{font-size:10px;color:var(--tx3);margin-bottom:2px}
-.next-val{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--tl)}
-.slog{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;max-height:80px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx3);margin-top:7px;line-height:1.7}
-.lok{color:var(--gr)}.lerr{color:var(--rd)}.linf{color:var(--tl)}
-.tabs{display:flex;border-bottom:1px solid var(--bd);background:var(--bg2);padding:0 14px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{padding:11px 13px;font-size:12px;font-family:'Noto Sans KR',sans-serif;background:none;border:none;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
-.tab.on{color:var(--ac);border-bottom-color:var(--ac)}
-.tab.nvt.on{color:var(--nv);border-bottom-color:var(--nv)}
-.tab.tst.on{color:var(--ts);border-bottom-color:var(--ts)}
-.tab.imt.on{color:var(--pu);border-bottom-color:var(--pu)}
-.tab.fixt.on{color:#f59e0b;border-bottom-color:#f59e0b}
-.out-area{flex:1;overflow-y:auto;padding:15px}
-.out-area::-webkit-scrollbar{width:4px}
-.out-area::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
-.pane{display:none}.pane.on{display:block}
-.ohdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:7px}
-.obox{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre-wrap;word-break:break-all;max-height:600px;overflow-y:auto}
-.obox.prose{font-family:'Noto Sans KR',sans-serif;font-size:13px}
-.obox::-webkit-scrollbar{width:3px}
-.obox::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
-.pbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;margin-bottom:7px}
-.nvb{background:rgba(3,199,90,.1);color:var(--nv);border:1px solid rgba(3,199,90,.22)}
-.tsb{background:rgba(255,108,47,.1);color:var(--ts);border:1px solid rgba(255,108,47,.22)}
-.okbanner{border-radius:var(--rs);padding:8px 12px;font-size:11px;margin-bottom:10px;display:none}
-.okbanner.on{display:block}
-.ok-nv{background:rgba(3,199,90,.06);border:1px solid rgba(3,199,90,.2);color:#86efac}
-.ok-ts{background:rgba(255,108,47,.06);border:1px solid rgba(255,108,47,.2);color:#fdba74}
 
-/* 저장 완료 배너 */
-.save-banner{background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(14,165,233,.07));border:1px solid rgba(34,197,94,.3);border-radius:var(--r);padding:14px 16px;display:none;margin-bottom:14px}
-.save-banner.on{display:block}
-.sb-title{font-size:14px;font-weight:700;color:var(--gr);margin-bottom:6px}
-.sb-path{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--tl);background:var(--bg);padding:6px 10px;border-radius:var(--rs);margin-bottom:8px;word-break:break-all}
-.sb-list{font-size:12px;color:var(--tx2);line-height:2}
-
-/* 이미지 프롬프트 카드 */
-.prompt-section{margin-bottom:20px}
-.prompt-section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
-.prompt-grid{display:flex;flex-direction:column;gap:10px;padding-right:4px}
-.prompt-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
-.pc-hdr{padding:10px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
-.pc-num{font-size:11px;font-weight:700}
-.pc-title{font-size:13px;font-weight:500}
-.pc-body{padding:12px 13px;display:flex;flex-direction:column;gap:8px}
-.pc-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
-.pc-en{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:9px 11px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tl);line-height:1.6;word-break:break-all}
-.pc-ko{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--tx2);line-height:1.6}
-.pc-caption{font-size:11px;color:var(--tx3)}
-.pc-fname{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--tl)}
-.pc-copy-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
-
-/* 사용처 안내 */
-.tool-guide{background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.18);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.8;color:var(--tx2)}
-.tool-guide b{color:var(--pu)}
-.tool-guide code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);padding:1px 6px;border-radius:4px;color:var(--tl)}
-
-.exp-select{display:flex;gap:6px}
-.exp-btn{flex:1;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--tx2);font-size:12px;cursor:pointer;transition:all .14s}
-.exp-btn.on{background:rgba(79,142,247,.12);color:var(--ac);border-color:var(--ac)}
-
-/* 수정요청 */
-.fix-hint{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--tx2);line-height:1.7;margin-bottom:12px}
-.fix-hint b{color:var(--am)}
-.ftgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
-.ftbtn{padding:10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg3);cursor:pointer;text-align:center;transition:all .15s}
-.ftbtn.on{border-color:var(--am);background:rgba(245,158,11,.1)}
-.ftic{font-size:20px;margin-bottom:3px}
-.ftn{font-size:12px;font-weight:600}
-.ftypegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px}
-.ftybtn{padding:7px 4px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg);font-size:11px;color:var(--tx2);cursor:pointer;text-align:center;transition:all .15s;font-family:'Noto Sans KR',sans-serif}
-.ftybtn.on{border-color:var(--am);background:rgba(245,158,11,.1);color:var(--am)}
-.fix-ia{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px;margin-bottom:8px}
-.fix-ia label{font-size:11px;color:var(--tx2);display:block;margin-bottom:5px}
-.fix-ia textarea{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;color:var(--tx);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none;min-height:80px;resize:vertical;line-height:1.6}
-.fix-ia textarea:focus{border-color:var(--am)}
-.btn-fix{width:100%;padding:11px;border-radius:var(--rs);border:none;background:linear-gradient(135deg,var(--am),#d97706);color:#000;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
-.btn-fix:disabled{opacity:.4;cursor:not-allowed}
-.fix-result-box{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:13px;font-family:'JetBrains Mono',monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:500px;overflow-y:auto;line-height:1.75;display:none;margin-top:8px}
-.fix-result-box.on{display:block}
-.cki{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}
-.cki:last-child{border-bottom:none}
-.cki input{margin-top:2px;accent-color:var(--ac);cursor:pointer;width:14px;height:14px;flex-shrink:0}
-.ckl{font-size:13px;font-weight:500}.ckd{font-size:11px;color:var(--tx3);margin-top:1px}
-.hi{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:6px;cursor:pointer;transition:all .15s}
-.hi:hover{border-color:var(--bd2)}
-.hi-kw{flex:1}.hi-nv{font-size:12px;color:var(--nv)}.hi-ts{font-size:12px;color:var(--ts)}
-.hi-date{font-size:10px;color:var(--tx3);white-space:nowrap}
-.hi-del{font-size:14px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:0 3px}
-.hi-del:hover{color:var(--rd)}
-.guide{background:rgba(79,142,247,.04);border:1px solid rgba(79,142,247,.13);border-radius:var(--rs);padding:8px 11px;font-size:11px;color:var(--tx2);line-height:1.7;margin-top:7px}
-.guide b{color:var(--ac)}
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:240px;color:var(--tx3);gap:9px;text-align:center;padding:20px;position:relative;top:0;margin:auto}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--r);padding:10px 18px;font-size:13px;color:var(--tx);opacity:0;transition:all .25s;pointer-events:none;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:90vw;text-align:center}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-.spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:inline-block;vertical-align:middle}
-@keyframes rot{to{transform:rotate(360deg)}}
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--bd);padding:5px 0;z-index:100;justify-content:space-around}
-.mb{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--tx3);font-size:10px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;padding:4px 14px}
-.mb.on{color:var(--ac)}.mbic{font-size:18px}
-@media(max-width:768px){
-  html,body{overflow:auto;height:auto}
-  .wrap{flex-direction:column;overflow:visible}
-  .sb{width:100%;border-right:none;overflow:visible}
-  .sb-sc{overflow:visible}
-  .main{min-height:500px;overflow:visible;display:none}
-  .main.on{display:flex}
-  .out-area{overflow:visible;max-height:none}
-  .mob-nav{display:flex}
-  body{padding-bottom:62px}
-}
-/* 의견 입력 힌트 */
-.opinion-hint{font-size:10px;color:var(--tl);margin-top:3px;line-height:1.5}
-/* Gemini 이미지 생성 */
-.gemini-img-wrap{border-top:1px solid var(--bd);padding-top:10px;margin-top:8px}
-.gemini-gen-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border-radius:var(--rs);border:none;background:linear-gradient(135deg,#4285f4,#0f9d58);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
-.gemini-gen-btn:hover{opacity:.88}
-.gemini-gen-btn:disabled{opacity:.4;cursor:not-allowed}
-.generated-img{width:100%;border-radius:var(--rs);margin-top:8px;border:1px solid var(--bd);display:none}
-.img-dl-btn{display:none;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px;border-radius:var(--rs);border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.07);color:var(--gr);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px}
-.img-dl-btn.on{display:flex}
-.gemini-all-btn{display:block;width:100%;padding:11px;border-radius:var(--r);border:none;background:linear-gradient(135deg,#4285f4,#0f9d58);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:14px;transition:all .2s}
-.gemini-all-btn:hover{opacity:.88}
-.gemini-all-btn:disabled{opacity:.4;cursor:not-allowed}
-</style>
-</head>
-<body>
-
-<div class="hdr">
-  <div class="logo">BlogAI</div>
-  <div class="ver">v10</div>
-  <div id="modePill" class="mode-pill mode-vercel">🌐 Vercel 모드</div>
-  <div class="hdr-r">
-    <div class="ksaved" id="ksaved">✓ 저장됨</div>
-  </div>
-</div>
-
-<div class="wrap">
-<div class="sb" id="sb">
-<div class="sb-sc">
-
-<div class="card">
-  <div class="chd"><div class="cdot" style="background:var(--ac)"></div>API 키<div class="cnum">01</div></div>
-  <div class="fld"><label>Tavily API 키 <span style="color:var(--tl)">실시간 뉴스</span></label>
-    <input type="password" id="tavilyKey" placeholder="tvly-..." oninput="autoSave()"></div>
-  <div class="fld"><label>Gemini API 키 <span style="color:var(--rd)">필수</span></label>
-    <input type="password" id="geminiKey" placeholder="AIzaSy..." oninput="autoSave()"></div>
-  <div class="r2">
-    <div class="fld"><label>네이버 Client ID</label>
-      <input type="password" id="naverClientId" placeholder="네이버 Client ID" oninput="autoSave()"></div>
-    <div class="fld"><label>네이버 Client Secret</label>
-      <input type="password" id="naverClientSecret" placeholder="네이버 Secret" oninput="autoSave()"></div>
-  </div>
-  <div class="tog"><span>키 저장 (이 기기)</span>
-    <label class="tw"><input type="checkbox" id="saveTgl" onchange="onSaveTgl()"><div class="ttrack"></div><div class="tthumb"></div></label>
-  </div>
-  <div class="guide" id="modeGuide">
-    <b>로컬 모드</b>: 글 + 이미지 프롬프트가 바탕화면에 자동 저장<br>
-    <b>Vercel 모드</b>: 글 생성 + 프롬프트 확인 (저장은 수동)
-  </div>
-</div>
-
-<div class="card">
-  <div class="chd"><div class="cdot" style="background:var(--tl)"></div>블로그 설정<div class="cnum">02</div></div>
-  <div class="r2">
-    <div class="fld"><label>닉네임</label><input type="text" id="nickName" value="여행 & 생활 블로거"></div>
-    <div class="fld"><label>티스토리 분야</label>
-      <select id="tsBlogType">
-        <option value="국내여행·관광정보">🇰🇷 국내여행·관광정보</option>
-        <option value="해외여행·관광정보">✈️ 해외여행·관광정보</option>
-        <option value="국내+해외 여행 전반">🌏 국내+해외 여행</option>
-        <option value="정부지원금·복지">💡 정부지원금·복지</option>
-        <option value="생활정보">📝 생활정보</option>
-        <option value="금융·재테크">💰 금융·재테크</option>
-        <option value="건강·의료">🩺 건강·의료</option>
-        <option value="육아·교육">👶 육아·교육</option>
-        <option value="이슈·트렌드">🔥 이슈·트렌드</option>
-      </select>
-    </div>
-  </div>
-  <div class="fld"><label>네이버 카테고리</label>
-    <select id="nvKwCat">
-      <option>정부지원금·복지</option><option>생활정보</option>
-      <option>금융·재테크</option><option>건강·의료</option>
-      <option>육아·교육</option><option>이슈·트렌드</option>
-    </select>
-  </div>
-</div>
-
-<div class="card">
-  <div class="chd"><div class="cdot" style="background:var(--am)"></div>키워드<div class="cnum">03</div></div>
-  <div style="margin-bottom:11px">
-    <div style="font-size:11px;color:var(--ts);font-weight:600;margin-bottom:5px">✈️ 티스토리 여행 키워드</div>
-    <div class="fld"><input type="text" id="tsKw" placeholder="예: 전주 한옥마을 당일치기 코스"></div>
-    <div class="r2" style="margin-top:5px">
-      <div class="fld"><select id="tsKwCat">
-        <option>국내여행·관광정보</option>
-        <option>해외여행·관광정보</option>
-        <option>정부지원금·복지</option>
-        <option>생활정보</option>
-        <option>금융·재테크</option>
-        <option>건강·의료</option>
-        <option>육아·교육</option>
-        <option>이슈·트렌드</option>
-      </select></div>
-      <div class="fld" style="display:flex;align-items:flex-end"><button class="btn-sm" id="tsKwBtn" onclick="fetchKw()" style="width:100%;justify-content:center">✦ 추천</button></div>
-    </div>
-    <div class="chips" id="tsChips"></div>
-  </div>
-  <div style="border-top:1px solid var(--bd);padding-top:10px">
-    <div style="font-size:11px;color:var(--nv);font-weight:600;margin-bottom:5px">📱 네이버 핫 키워드</div>
-    <div class="fld"><input type="text" id="nvKw" placeholder="예: 2026 청년월세지원 신청방법"></div>
-    <button class="btn-hot" id="hotBtn" onclick="fetchHot()">🔥 3일 이내 핫 키워드 자동 선별</button>
-    <div class="chips" id="nvChips"></div>
-  </div>
-</div>
-
-<div class="memo-card">
-  <div class="chd"><div class="cdot" style="background:var(--am)"></div>내 의견 · 메모<div class="cnum">04</div></div>
-  <div class="fld"><label>네이버 글에 반영할 내용</label>
-    <textarea id="memoNv" placeholder="예: 오늘 직접 신청해봤는데 생각보다 간단했어요. 서류는 주민등록등본 하나만 필요했고..."></textarea>
-  </div>
-  <div class="fld" style="margin-top:6px"><label>티스토리 글에 반영할 내용</label>
-    <textarea id="memoTs" placeholder="예: 작년 가을 다녀왔어요. 주차는 효자동 공영주차장 추천. 주말 오전 일찍 가야 인파 덜해요."></textarea>
-  </div>
-  <div class="fld" style="margin-top:6px"><label>경험 유형 선택</label>
-    <div class="exp-select">
-      <button type="button" class="exp-btn" data-exp="direct" onclick="setExperienceType('direct')">내 경험</button>
-      <button type="button" class="exp-btn" data-exp="indirect" onclick="setExperienceType('indirect')">지인 주변 경험</button>
-      <button type="button" class="exp-btn on" data-exp="mixed" onclick="setExperienceType('mixed')">혼합</button>
-    </div>
-    <input type="hidden" id="experienceType" value="mixed">
-  </div>
-  <div class="fld" style="margin-top:6px"><label>나의 추가 의견 <span style="color:var(--tl);font-size:10px">(네이버용)</span></label>
-    <textarea id="opinionNv" placeholder="예: 직접 신청해봤는데 서류가 생각보다 간단했어요. 주민등록등본 1부면 충분했고..." style="min-height:52px;font-size:12px"></textarea>
-    <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
-  </div>
-  <div class="fld" style="margin-top:6px"><label>나의 추가 의견 <span style="color:var(--ts);font-size:10px">(티스토리용)</span></label>
-    <textarea id="opinionTs" placeholder="예: 현장에서 줄이 꽤 길었어요. 주차는 1km 떨어진 공영주차장 추천. 오전 일찍 가면 한산해요." style="min-height:52px;font-size:12px"></textarea>
-    <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
-  </div>
-  <div class="fld" style="margin-top:6px"><label>이미지 수</label>
-    <input type="number" id="imgCount" min="1" max="10" value="4"></div>
-  <div class="fld"><label>네이버 글자수</label>
-      <select id="nvChar"><option value="1200">1,200자+</option><option value="1500" selected>1,500자+</option></select></div>
-    <div class="fld"><label>티스토리 글자수</label>
-      <select id="tsChar"><option value="2000">2,000자+</option><option value="2500" selected>2,500자+</option><option value="3000">3,000자+</option></select></div>
-  </div>
-  <div class="fld"><label>구성 요소</label>
-    <div class="tags" id="optTags">
-      <span class="tag on" data-v="경험담">경험담</span>
-      <span class="tag on" data-v="FAQ">FAQ</span>
-      <span class="tag on" data-v="핵심 요약표">요약표</span>
-      <span class="tag on" data-v="체크리스트">체크리스트</span>
-      <span class="tag" data-v="주의사항">주의사항</span>
-      <span class="tag" data-v="여행 팁">여행 팁</span>
-    </div>
-  </div>
-</div>
-
-
-<div>
-  <div class="r2">
-    <button class="btn-gen" id="genNvBtn" onclick="generateNaver()" style="background:linear-gradient(135deg,var(--nv),#02b350);">📱 네이버 단독 생성</button>
-    <button class="btn-gen" id="genTsBtn" onclick="generateTistory()" style="background:linear-gradient(135deg,var(--ts),#e65c20);">✈️ 티스토리 단독 생성</button>
-  </div>
-  <div class="prog"><div class="prog-track"><div class="prog-bar" id="pbar"></div></div><div class="prog-lbl" id="plbl"></div></div>
-</div>
-
-</div>
-</div>
-
-<div class="main" id="main">
-<div class="tabs">
-  <button class="tab nvt on" id="t-nv" onclick="showTab('nv')">📱 네이버</button>
-  <button class="tab tst" id="t-ts" onclick="showTab('ts')">✈️ 티스토리</button>
-  <button class="tab imt" id="t-img" onclick="showTab('img')">🖼 이미지 프롬프트</button>
-  <button class="tab fixt" id="t-fix" onclick="showTab('fix')">✏️ 수정 요청</button>
-  <button class="tab" id="t-seo" onclick="showTab('seo')">✅ SEO</button>
-  <button class="tab" id="t-hist" onclick="showTab('hist')">🕘 히스토리</button>
-</div>
-<div class="out-area">
-
-  <div class="empty" id="emptyState">
-    <div style="width:56px;height:56px;border-radius:14px;background:var(--bg2);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:26px">✦</div>
-    <div style="font-size:15px;font-weight:500;color:var(--tx2)">생성 대기 중</div>
-    <div style="font-size:13px;max-width:280px;line-height:1.8;color:var(--tx3)">딸깍 한 번이면<br><span style="color:var(--nv)">네이버 글</span> + <span style="color:var(--ts)">티스토리 글</span><br>+ <span style="color:var(--pu)">이미지 프롬프트</span> 동시 완성</div>
-  </div>
-
-  <!-- 네이버 -->
-  <div class="pane" id="pane-nv">
-    <div class="okbanner ok-nv" id="ok-nv">✅ 실시간 뉴스 + 내 메모 반영 / 모바일 최적화</div>
-    <div class="ohdr">
-      <div><div class="pbadge nvb">📱 네이버 블로그</div><div style="font-size:11px;color:var(--tx2)">글쓰기에 붙여넣기</div></div>
-      <div style="display:flex;gap:5px">
-        <button class="btn-sm" onclick="copyEl('nvOut')">📋 복사</button>
-        <button class="btn-sm" onclick="dlText('nvOut','네이버_글.txt')">💾 저장</button>
-      </div>
-    </div>
-    <div class="obox prose" id="nvOut">생성하면 여기에 네이버용 텍스트가 나타나요.</div>
-  </div>
-
-  <!-- 티스토리 -->
-  <div class="pane" id="pane-ts">
-    <div class="okbanner ok-ts" id="ok-ts">✅ 여행 HTML / 실시간 정보 반영 / 이미지 위치 주석 포함</div>
-    <div class="ohdr">
-      <div><div class="pbadge tsb">✈️ 티스토리</div><div style="font-size:11px;color:var(--tx2)">HTML 모드에 붙여넣기</div></div>
-      <div style="display:flex;gap:5px">
-        <button class="btn-sm" onclick="copyEl('tsOut')">📋 복사</button>
-        <button class="btn-sm" onclick="dlText('tsOut','티스토리_글.html')">💾 저장</button>
-      </div>
-    </div>
-    <div class="obox" id="tsOut">생성하면 여기에 티스토리용 HTML이 나타나요.</div>
-  </div>
-
-  <!-- 이미지 프롬프트 -->
-  <div class="pane" id="pane-img">
-
-    <!-- 로컬 저장 완료 배너 -->
-    <div class="save-banner" id="saveBanner">
-      <div class="sb-title">✅ 바탕화면에 자동 저장 완료!</div>
-      <div class="sb-path" id="savePath"></div>
-      <div class="sb-list" id="saveList"></div>
-    </div>
-
-    <!-- 사용 방법 안내 -->
-    <div class="tool-guide">
-      <b>🖼 이미지 프롬프트 사용법</b><br>
-      <b>미드저니</b>: <code>/imagine</code> 뒤에 영어 프롬프트 붙여넣기<br>
-      <b>ChatGPT · Gemini</b>: GPT 프롬프트 복사 → 붙여넣기<br>
-      <b>Canva AI · 네이버AI</b>: 한국어 프롬프트 복사 → 붙여넣기
-    </div>
-
-    <!-- 네이버 이미지 프롬프트 -->
-    <div class="prompt-section">
-      <div class="prompt-section-hdr">
-        <div class="pbadge nvb">📱 네이버 이미지 프롬프트</div>
-        <span style="font-size:11px;color:var(--tx3)">카드뉴스 · 인포그래픽 스타일</span>
-      </div>
-      <div class="prompt-grid" id="pgrid-nv">
-        <div style="color:var(--tx3);font-size:13px;text-align:center;padding:20px 0">생성 후 여기에 나타나요</div>
-      </div>
-    </div>
-
-    <!-- 티스토리 이미지 프롬프트 -->
-    <div class="prompt-section">
-      <div class="prompt-section-hdr">
-        <div class="pbadge tsb">✈️ 티스토리 이미지 프롬프트</div>
-        <span style="font-size:11px;color:var(--tx3)">여행 · 현장 사진 스타일</span>
-      </div>
-      <div class="prompt-grid" id="pgrid-ts">
-        <div style="color:var(--tx3);font-size:13px;text-align:center;padding:20px 0">생성 후 여기에 나타나요</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 수정 요청 -->
-  <div class="pane" id="pane-fix">
-    <div class="fix-hint"><b>✏️ Gemini에게 수정 요청</b><br>생성된 글을 수정하거나 내용 추가 → 확인 후 반영하기로 원본 교체</div>
-    <div class="ftgrid">
-      <div class="ftbtn on" id="ft-nv" onclick="setFT('nv')"><div class="ftic">📱</div><div class="ftn" style="color:var(--nv)">네이버</div></div>
-      <div class="ftbtn" id="ft-ts" onclick="setFT('ts')"><div class="ftic">✈️</div><div class="ftn" style="color:var(--ts)">티스토리</div></div>
-    </div>
-    <div class="ftypegrid">
-      <button class="ftybtn" onclick="setFTY(this,'제목을 더 클릭률 높게 바꿔줘')">제목 변경</button>
-      <button class="ftybtn" onclick="setFTY(this,'글 톤을 더 친근하고 재밌게 바꿔줘')">톤 변경</button>
-      <button class="ftybtn" onclick="setFTY(this,'최신 뉴스 맥락과 배경을 더 추가해줘')">뉴스 추가</button>
-      <button class="ftybtn" onclick="setFTY(this,'모바일 가독성을 더 좋게 문단을 짧게 나눠줘')">가독성</button>
-      <button class="ftybtn" onclick="setFTY(this,'SEO 키워드 배치를 최적화해줘')">SEO</button>
-      <button class="ftybtn" onclick="setFTY(this,'경험담을 더 생생하고 구체적으로 다시 써줘')">경험담</button>
-    </div>
-    <div class="fix-ia">
-      <label>구체적인 수정 요청 내용</label>
-      <textarea id="fixReq" placeholder="예: 제목에 '갑자기 왜?' 표현 추가하고, 시행 배경 섹션 더 구체적으로 써줘"></textarea>
-    </div>
-    <button class="btn-fix" id="fixBtn" onclick="doFix()">✦ Gemini에게 수정 요청하기</button>
-    <div id="fixResultArea" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:5px">
-        <div style="font-size:12px;color:var(--tx2)">수정 결과 — 확인 후 반영하세요</div>
-        <div style="display:flex;gap:5px">
-          <button class="btn-sm" onclick="applyFix()" style="border-color:rgba(245,158,11,.4);color:var(--am)">✅ 반영하기</button>
-          <button class="btn-sm" onclick="copyEl('fixResult')">📋 복사</button>
-        </div>
-      </div>
-      <div class="fix-result-box on" id="fixResult"></div>
-    </div>
-  </div>
-
-  <!-- SEO -->
-  <div class="pane" id="pane-seo">
-    <div class="ohdr"><div style="font-size:12px;color:var(--tx2)">발행 전 체크리스트</div><button class="btn-sm" onclick="document.querySelectorAll('.cki input').forEach(c=>c.checked=false)">↺ 초기화</button></div>
-    <div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">두 블로그 제목이 다른지 확인</div><div class="ckd">제목 같으면 중복 콘텐츠 → 저품질 위험</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">네이버 — 모바일 가독성 확인</div><div class="ckd">짧은 문단, 이모지 소제목, 빈 줄 간격</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">티스토리 — 여행 키워드 자연 배치</div><div class="ckd">지명·관광지·음식 키워드 분산 확인</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">이미지 프롬프트로 이미지 생성 후 삽입</div><div class="ckd">미드저니/ChatGPT/Canva로 생성 → 업로드</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">발행 시간: 오전 7~9시 또는 오후 6~9시</div><div class="ckd">알고리즘 유입 높은 시간대</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">티스토리 태그 입력 (TISTORY-TAGS 주석)</div><div class="ckd">글 하단 주석 복사 → 태그란</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">네이버 태그 입력 (# 없이 줄바꿈)</div><div class="ckd">글 하단 20개 태그</div></div></div>
-    </div>
-  </div>
-
-  <!-- 히스토리 -->
-  <div class="pane" id="pane-hist">
-    <div class="ohdr"><div style="font-size:12px;color:var(--tx2)">최근 생성 히스토리 (최대 15개)</div><button class="btn-sm" onclick="clearHist()">🗑 전체 삭제</button></div>
-    <div id="histList"><div style="color:var(--tx3);font-size:13px;text-align:center;padding:24px 0">히스토리가 없어요</div></div>
-  </div>
-
-</div>
-</div>
-</div>
-
-<div class="mob-nav">
-  <button class="mb on" id="mob-s" onclick="mv('s')"><span class="mbic">⚙</span>설정</button>
-  <button class="mb" id="mob-r" onclick="mv('r')"><span class="mbic">📄</span>결과</button>
-</div>
-<div class="toast" id="toast"></div>
-
-<script>
 /* ═══ STATE ═══ */
 let opts=['경험담','FAQ','핵심 요약표','체크리스트'];
 let fixTarget='nv';
@@ -686,7 +184,7 @@ async function fetchKw(){
         : '"'+cat+'" 애드포스트 수익 유리한 롱테일 키워드 10개. 고단가(대출/보험/카드/재테크/지원금) 우선.'+newsSection+excludeList+'\nJSON 배열만: ["키워드1",...,"키워드10"]';
     }
 
-    const t=await geminiAsk(prompt,500,'gemini-3.1-flash-lite-preview');
+    const t=await geminiAsk(prompt,500,'gemini-2.0-flash');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
     try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
@@ -745,7 +243,7 @@ async function fetchHot(){
           ? '"'+userKeyword+'" 관련 블로그 SEO 키워드 10개. 검색량 높고 애드포스트 유리한 것 우선.'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]'
           : '"'+cat+'" 카테고리 블로그 키워드 10개. 검색량 높고 애드포스트 고단가 우선.'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]');
 
-    const t = await geminiAsk(finalQ, 500, 'gemini-3.1-flash-lite-preview');
+    const t = await geminiAsk(finalQ, 500, 'gemini-2.0-flash');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
     try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
@@ -814,7 +312,7 @@ async function generateNaver(){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
 
       const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함`;
-      nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-3.1-pro-preview')||''; // Text generation
+      nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-2.0-flash')||''; // Text generation
       toast('✅ [3단계] Gemini 팩트+목차 완료');
     }
 
@@ -826,7 +324,7 @@ async function generateNaver(){
       setProg(18,'💭 의견 보완 중 (네이버)...');
       try{
         const opCtx = nvDeep ? `\n관련정보:\n${nvDeep.slice(0,400)}` : '';
-        augOpinionNv = await geminiAsk(`블로거 의견: "${opinionNv}"\n키워드: ${fNvKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`, 500, 'gemini-3.1-pro-preview'); // Text generation
+        augOpinionNv = await geminiAsk(`블로거 의견: "${opinionNv}"\n키워드: ${fNvKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`, 500, 'gemini-2.0-flash'); // Text generation
       }catch(e){augOpinionNv=opinionNv;}
     }
 
@@ -837,7 +335,7 @@ async function generateNaver(){
     
     const nvPromptTemplate = `[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]\n키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 애드포스트 수익 전략 (필수 준수):\n\n【1. CTR 클릭률 극대화】\n- 제목: 숫자("3가지", "월 30만원") + 손해/혜택/궁금증 자극 표현 필수\n- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)\n- 각 소제목도 클릭욕구 자극하는 표현 사용\n\n【2. 황금 키워드 + 고단가 키워드 필수 포함】\n- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치\n- 대출, 보험, 카드, 주식, 재테크, 세금, 환급, 지원금, 복지, 청약 중 관련 키워드를 본문에 자연스럽게 포함\n- 카테고리 "${nvKwCat}" 관련 고단가 키워드를 소제목 또는 문단에 배치\n- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용\n\n【3. 이슈성 + 정보성 결합】\n- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)\n- 중반부: 구체적 수치/조건/절차/혜택 정보\n- 후반부: 독자 행동 유도(신청, 비교, 확인 등)\n\n【4. 체류시간 극대화】\n- 소제목 6개 이상 (각각 독립적 정보 단위)\n- FAQ 5개 이상 (실제 검색 의도와 일치)\n- 단계별 설명 또는 비교 목록 포함\n- 관련 카테고리 키워드로 추가 읽을거리 유도\n\n【5. 경험 자연스럽게 녹이기】\n- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입\n- ${expGuide}\n- 경험 직후 바로 관련 팁/정보로 연결\n\n기술 규칙:\n- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심\n- 표(table) 절대 금지\n- 단락 사이 빈 줄 필수\n- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)\n- 순수 텍스트 + 이모지만 사용\n\n형식:\n첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]\n도입부 3줄: 공감 + 이슈 + 해결 암시\n소제목 6개+: 이모지 + 자극적이고 정보적인 소제목\n각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입\n마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가\n\n★ 이미지 배치 규칙 (매우 중요, 절대 몰아서 넣지 말 것):\n- [이미지1 삽입 위치 - 설명]: 도입부 또는 첫 소제목 바로 뒤\n- [이미지2 삽입 위치 - 설명]: 두/세번째 소제목 뒤\n- [이미지3 삽입 위치 - 설명]: 중반부 소제목 뒤\n- [이미지4 삽입 위치 - 설명]: 후반부 소제목 뒤\n- [이미지5 삽입 위치 - 설명]: 마무리 직전 (해당하는 이미지 수 만큼만)\n- 반드시 각 소제목 사이사이에 분산 배치, 마지막에 몰아서 넣기 절대 금지\n\n태그 20개 맨 아래 (# 없이 줄바꿈)\nHTML 태그 없이 순수 텍스트${nvMemo}${nvOp}${nvCtx}\n역할: 대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`;
 
-    const nvText = await geminiAsk(nvPromptTemplate, 5500, 'gemini-3.1-pro-preview');
+    const nvText = await geminiAsk(nvPromptTemplate, 5500, 'gemini-2.0-flash');
     if(!nvText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
     let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
     cleanNvText = cleanNvText.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>p.replace(/([.?!])\s*(?=[^\n])/g,'$1\n')).join('\n\n');
@@ -856,9 +354,9 @@ async function generateNaver(){
     const nvContent = gd.nv.replace(/\s+/g,' ').trim().slice(0,600);
     const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. 정책/지원금/금융→인포그래픽·카드뉴스 스타일\n5. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지, 자연스러운 일반 화질 느낌)\n6. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n7. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
     
-    let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-3.1-flash-lite-preview');
+    let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-2.0-flash');
     if(!promptRaw || promptRaw.length < 50){
-      promptRaw = await geminiAsk(imgPromptQ, 3500, 'gemini-3.1-flash-lite-preview');
+      promptRaw = await geminiAsk(imgPromptQ, 3500, 'gemini-2.0-flash');
     }
 
     let allPrompts=[];
@@ -992,7 +490,7 @@ async function generateTistory(){
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
       const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함`;
-      tsOutline=await geminiAsk(outlineQ,1200,'gemini-3.1-pro-preview')||'';
+      tsOutline=await geminiAsk(outlineQ,1200)||'';
     }
 
     const tsCtx=(tsOutline||tsNews5||tsDeep)?`\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(tsOutline||tsNews5||tsDeep).slice(0,2000)}\n★ 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━`:'';
@@ -1003,7 +501,7 @@ async function generateTistory(){
       setProg(18,'💭 의견 보완 중...');
       try{
         const opCtx=tsDeep?`\n관련정보:\n${tsDeep.slice(0,400)}`:'';
-        augOpinionTs=await geminiAsk(`블로거 의견: "${opinionTs}"\n키워드: ${fTsKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,500,'gemini-3.1-pro-preview')||opinionTs;
+        augOpinionTs=await geminiAsk(`블로거 의견: "${opinionTs}"\n키워드: ${fTsKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,500)||opinionTs;
       }catch(e){augOpinionTs=opinionTs;}
     }
 
@@ -1014,7 +512,7 @@ async function generateTistory(){
 
     const tsPromptTemplate=`[티스토리 블로그 — HTML 형식 SEO 최적화]\n키워드: "${fTsKw}" | 카테고리: ${tsKwCat} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 티스토리 HTML 규칙 (필수):\n- 반드시 완전한 HTML 코드로 작성 (body 내용만, html/head 태그 불필요)\n- <h2> 소제목 6개 이상 (SEO 키워드 포함)\n- <h3> 부제목 활용\n- <p> 단락 (2~3문장)\n- <ul><li> 목록 활용\n- <strong> 중요 키워드 강조\n- <br><br> 단락 사이 간격\n- 표(table) 금지\n- 이모지 적극 활용\n\n★ SEO 전략:\n- 제목: <h1> 또는 첫 <h2>에 키워드 "${fTsKw}" 포함\n- 본문 전체에 키워드 자연스럽게 반복 배치\n- FAQ <h2> 섹션 5개 이상 포함\n- 카테고리 "${tsKwCat}" 관련 고단가 키워드 포함\n\n★ 경험 자연스럽게 녹이기:\n- ${expGuide}\n\n★ 이미지 배치:\n- <!-- 이미지1 --> 부터 <!-- 이미지${imgCount} --> 주석으로 각 이미지 위치 표시\n- 소제목 사이사이에 분산 배치\n\n맨 아래 태그 20개: <p>태그1, 태그2, ...</p>형식${tsMemo}${tsOp}${tsCtx}\n역할: 대한민국 최고 티스토리 SEO 전문가이자 수익형 블로거 ${nick}. 카테고리: ${tsKwCat}.`;
 
-    const tsText=await geminiAsk(tsPromptTemplate,5500,'gemini-3.1-pro-preview');
+    const tsText=await geminiAsk(tsPromptTemplate,5500,'gemini-2.0-flash');
     if(!tsText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
 
     gd.ts=tsText;
@@ -1032,8 +530,8 @@ async function generateTistory(){
 
     const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
 
-    let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-3.1-flash-lite-preview');
-    if(!tsPromptRaw||tsPromptRaw.length<50) tsPromptRaw=await geminiAsk(tsImgPromptQ,3500,'gemini-3.1-flash-lite-preview');
+    let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-2.0-flash');
+    if(!tsPromptRaw||tsPromptRaw.length<50) tsPromptRaw=await geminiAsk(tsImgPromptQ,3500,'gemini-2.0-flash');
 
     let tsAllPrompts=[];
     try{
@@ -1252,7 +750,7 @@ async function doFix(){
   btn.disabled=true;btn.textContent='⏳ 수정 중...';
   document.getElementById('fixResultArea').style.display='none';
   try{
-    const result=await geminiAsk(`다음 ${fixTarget==='nv'?'네이버 블로그 텍스트':'티스토리 HTML'} 글을 아래 요청에 따라 수정해주세요.\n\n[수정 요청]\n${req}\n\n[현재 글]\n${content}\n\n수정된 글 전체만 반환. 설명 없이.`, 5500, 'gemini-3.1-pro-preview'); // Text generation
+    const result=await geminiAsk(`다음 ${fixTarget==='nv'?'네이버 블로그 텍스트':'티스토리 HTML'} 글을 아래 요청에 따라 수정해주세요.\n\n[수정 요청]\n${req}\n\n[현재 글]\n${content}\n\n수정된 글 전체만 반환. 설명 없이.`, 5500, 'gemini-2.0-flash'); // Text generation
     document.getElementById('fixResult').textContent=result;
     document.getElementById('fixResultArea').style.display='block';
     toast('✅ 수정 완료! 확인 후 반영하기 눌러주세요');
@@ -1339,7 +837,7 @@ async function autoRun(){
       const cat=document.getElementById('nvKwCat').value;
       const res=await tavilySearch(`${cat} 최신 이슈 2026`);
       let ctx=res?`\n\n[검색]\n${res.slice(0,1200)}\n[끝]`:'';
-      const kw=await geminiAsk(`"${cat}" 최근 3일 이내 핫한 키워드 1개.${ctx}\n키워드 1개만 반환:`, 200, 'gemini-3.1-flash-lite-preview');
+      const kw=await geminiAsk(`"${cat}" 최근 3일 이내 핫한 키워드 1개.${ctx}\n키워드 1개만 반환:`, 200, 'gemini-2.0-flash');
       const clean=kw.replace(/["'\n]/g,'').trim().slice(0,50);
       if(clean){document.getElementById('nvKw').value=clean;addLog(`🔥 키워드: ${clean}`,'lok');}
     }catch(e){addLog('⚠ 키워드 갱신 실패','lerr');}
@@ -1363,6 +861,3 @@ function updateNextRun(){
 loadKeys();
 renderHist();
 detectMode(); // 로컬/Vercel 자동 감지
-</script>
-</body>
-</html>

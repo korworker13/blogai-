@@ -38,22 +38,6 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-  // Claude API
-  if (req.method === 'POST' && req.url === '/api/claude') {
-    const { apiKey, model, max_tokens, messages, system } = await readBody(req);
-    const key = apiKey || process.env.CLAUDE_API_KEY;
-    if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'API 키 없음' })); return; }
-    try {
-      const body = { model: model || 'claude-sonnet-4-20250514', max_tokens: max_tokens || 5000, messages };
-      if (system) body.system = system;
-      const result = await httpsPost('api.anthropic.com', '/v1/messages',
-        { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, JSON.stringify(body));
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(result));
-    } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
-    return;
-  }
-
   // Naver Search API
   if (req.method === 'POST' && req.url === '/api/naver') {
     const { clientId, clientSecret, query } = await readBody(req);
@@ -94,27 +78,36 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Gemini API (gemini-1.5-flash)
+  // Gemini API (gemini-2.0-flash)
   if (req.method === 'POST' && req.url === '/api/gemini') {
-    const { apiKey, prompt, max_tokens } = await readBody(req);
+    const { apiKey, prompt, max_tokens, model } = await readBody(req);
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
 
+    const targetModel = model || 'gemini-2.0-flash'; // Default to pro-preview for general text generation
     try {
       const body = {
         contents: [{ parts: [{ text: prompt || '' }] }],
-        generationConfig: { maxOutputTokens: max_tokens || 300, temperature: 0.2 }
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: max_tokens || 8192, // maxOutputTokens 상향 조정
+        }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
-        `/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+        `/v1beta/models/${targetModel}:generateContent?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
+      console.log(`[Gemini] model=${targetModel} | candidates=${result?.candidates?.length||0} | error=${result?.error?.message||'none'} | finish=${result?.candidates?.[0]?.finishReason||'n/a'}`);
+      if (result?.error) console.error('[Gemini API ERROR]', JSON.stringify(result.error));
       let text = '';
       if (result && result.candidates && result.candidates[0] &&
           result.candidates[0].content && result.candidates[0].content.parts) {
         text = result.candidates[0].content.parts.map(p => p.text || '').join('');
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ text, raw: result }));
+      const geminiErr = result.error ? (result.error.message || JSON.stringify(result.error)) : (result.promptFeedback?.blockReason ? '안전필터 차단: '+result.promptFeedback.blockReason : undefined);
+      res.end(JSON.stringify({ text, error: geminiErr }));
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));
@@ -122,7 +115,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Gemini 이미지 생성 API (gemini-2.0-flash-exp)
+  // 이미지 생성 API (imagen-3.0-generate-001)
   if (req.method === 'POST' && req.url === '/api/gemini-image') {
     const { apiKey, prompt } = await readBody(req);
     const key = apiKey || process.env.GEMINI_API_KEY;
@@ -130,18 +123,21 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const body = {
-        contents: [{ parts: [{ text: prompt || '' }] }],
-        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+        instances: [{ prompt: prompt || '' }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: "16:9",
+          outputOptions: { mimeType: "image/jpeg", compressionQuality: 80 }
+        }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
-        `/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${encodeURIComponent(key)}`,
+        `/v1beta/models/gemini-3.1-flash-image-preview:predict?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
 
       let imageData = null, mimeType = 'image/png';
-      if (result && result.candidates && result.candidates[0] && result.candidates[0].content) {
-        for (const part of result.candidates[0].content.parts || []) {
-          if (part.inlineData) { imageData = part.inlineData.data; mimeType = part.inlineData.mimeType || 'image/png'; break; }
-        }
+      if (result && result.predictions && result.predictions[0]) {
+        imageData = result.predictions[0].bytesBase64Encoded;
+        mimeType = result.predictions[0].mimeType || 'image/png';
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ imageData, mimeType, raw: result.error || undefined }));
