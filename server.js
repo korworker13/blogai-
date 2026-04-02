@@ -131,7 +131,7 @@ const server = http.createServer(async (req, res) => {
         }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
-        `/v1beta/models/imagen-3.0-generate-001:predict?key=${encodeURIComponent(key)}`,
+        `/v1alpha/models/imagen-3.0-generate-001:predict?key=${encodeURIComponent(key)}`,
         {}, JSON.stringify(body));
 
       console.log('[Imagen] result keys:', result ? Object.keys(result) : 'null');
