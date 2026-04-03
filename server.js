@@ -78,13 +78,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Gemini API (gemini-2.0-flash)
+  // Gemini API (gemini-3.1-flash-lite-preview)
   if (req.method === 'POST' && req.url === '/api/gemini') {
     const { apiKey, prompt, max_tokens, model } = await readBody(req);
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
 
-    const targetModel = model || 'gemini-2.0-flash'; // Default to pro-preview for general text generation
+    const targetModel = model || 'gemini-3.1-flash-lite-preview'; // Default to pro-preview for general text generation
     try {
       const body = {
         contents: [{ parts: [{ text: prompt || '' }] }],
