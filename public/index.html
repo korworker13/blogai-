@@ -825,8 +825,31 @@ async function generateNaver(){
     let nvDeep='';
     if(tk){
       setProg(12,'[2] Tavily 심층 배경 검색 중...');
-      nvDeep = await tavilySearch(fNvKw+' 배경 조건 기준 2026')||'';
+      const [nvDeepRaw, nvLinkRaw] = await Promise.all([
+        tavilySearch(fNvKw+' 배경 조건 기준 2026'),
+        tavilySearch(fNvKw+' 공식 사이트 예매 신청 홈페이지')
+      ]);
+      nvDeep = [nvDeepRaw, nvLinkRaw].filter(Boolean).join('\n\n')||'';
       toast('✅ [2단계] Tavily 심층 정보 완료');
+    }
+
+    /* ━━ STEP 2-1: Gemini로 공식 링크 필터링 ━━ */
+    let nvVerifiedLinks='';
+    if(gk && nvDeep){
+      const rawUrls=[...new Set(
+        (nvDeep.match(/https?:\/\/[^\s"<>)\]]+/g)||[])
+        .filter(u=>!/\.(jpg|png|gif|svg|webp|css|js)$/i.test(u))
+      )].slice(0,30);
+      if(rawUrls.length){
+        try{
+          const judgeQ=`다음 URL 목록에서 "${fNvKw}" 관련 공식 예매/신청/정보 사이트 URL만 골라주세요.\n\n[포함기준] 공식 예매처, 티켓 플랫폼, 정부/공공기관 신청 페이지, 공식 브랜드 사이트\n[제외기준] 블로그, 뉴스기사, 커뮤니티, SNS, 유튜브\n\n[URL 목록]\n${rawUrls.join('\n')}\n\nJSON 배열만 반환 (없으면 빈 배열): ["url1","url2",...]`;
+          const judgeRes=await geminiAsk(judgeQ,500,'gemini-2.0-flash');
+          const matched=(judgeRes||'').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
+          const picked=JSON.parse(matched?matched[0]:'[]');
+          const validPicked=isLocal ? await checkUrls(picked.filter(u=>typeof u==='string'&&u.startsWith('http'))) : picked.filter(u=>typeof u==='string'&&u.startsWith('http'));
+          if(validPicked.length) nvVerifiedLinks=`\n\n[공식 링크 — 글 주제와 관련 있을 때만 자연스럽게 삽입]\n${validPicked.join('\n')}`;
+        }catch(e){}
+      }
     }
 
     /* ━━ STEP 3: Gemini — 팩트 추출 + 목차 작성 ━━ */
@@ -839,7 +862,7 @@ async function generateNaver(){
       toast('✅ [3단계] Gemini 팩트+목차 완료');
     }
 
-    const nvCtx = (nvOutline||nvNews5||nvDeep) ? `\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(nvOutline||nvNews5||nvDeep).slice(0,2000)}\n★ 위 목차와 팩트 기반으로 집필. 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━` : '';
+    const nvCtx = (nvOutline||nvNews5||nvDeep) ? `\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(nvOutline||nvNews5||nvDeep).slice(0,2000)}${nvVerifiedLinks}\n★ 위 목차와 팩트 기반으로 집필. 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━` : '';
 
     /* ━━ STEP 2b: 나의 의견 보완 (나의 의견 입력 시) ━━ */
     let augOpinionNv='';
@@ -1011,7 +1034,30 @@ async function generateTistory(){
     let tsDeep='';
     if(tk){
       setProg(12,'[2] Tavily 심층 배경 검색 중...');
-      tsDeep=await tavilySearch(fTsKw+' 상세 정보 2026')||'';
+      const [tsDeepRaw, tsLinkRaw] = await Promise.all([
+        tavilySearch(fTsKw+' 상세 정보 2026'),
+        tavilySearch(fTsKw+' 공식 사이트 예매 신청 홈페이지')
+      ]);
+      tsDeep=[tsDeepRaw, tsLinkRaw].filter(Boolean).join('\n\n')||'';
+    }
+
+    /* STEP 2-1: Gemini로 공식 링크 필터링 */
+    let tsVerifiedLinks='';
+    if(gk && tsDeep){
+      const tsRawUrls=[...new Set(
+        (tsDeep.match(/https?:\/\/[^\s"<>)\]]+/g)||[])
+        .filter(u=>!/\.(jpg|png|gif|svg|webp|css|js)$/i.test(u))
+      )].slice(0,30);
+      if(tsRawUrls.length){
+        try{
+          const judgeQ=`다음 URL 목록에서 "${fTsKw}" 관련 공식 예매/신청/정보 사이트 URL만 골라주세요.\n\n[포함기준] 공식 예매처, 티켓 플랫폼, 정부/공공기관 신청 페이지, 공식 브랜드 사이트\n[제외기준] 블로그, 뉴스기사, 커뮤니티, SNS, 유튜브\n\n[URL 목록]\n${tsRawUrls.join('\n')}\n\nJSON 배열만 반환 (없으면 빈 배열): ["url1","url2",...]`;
+          const judgeRes=await geminiAsk(judgeQ,500,'gemini-2.0-flash');
+          const matched=(judgeRes||'').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
+          const picked=JSON.parse(matched?matched[0]:'[]');
+          const validPicked=isLocal ? await checkUrls(picked.filter(u=>typeof u==='string'&&u.startsWith('http'))) : picked.filter(u=>typeof u==='string'&&u.startsWith('http'));
+          if(validPicked.length) tsVerifiedLinks=`\n\n[공식 링크 — 글 주제와 관련 있을 때만 자연스럽게 삽입]\n${validPicked.join('\n')}`;
+        }catch(e){}
+      }
     }
 
     /* STEP 3: Gemini 팩트+목차 */
@@ -1022,7 +1068,7 @@ async function generateTistory(){
       tsOutline=await geminiAsk(outlineQ,1200,'gemini-3.1-pro-preview')||'';
     }
 
-    const tsCtx=(tsOutline||tsNews5||tsDeep)?`\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(tsOutline||tsNews5||tsDeep).slice(0,2000)}\n★ 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━`:'';
+    const tsCtx=(tsOutline||tsNews5||tsDeep)?`\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(tsOutline||tsNews5||tsDeep).slice(0,2000)}${tsVerifiedLinks}\n★ 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━`:'';
 
     /* 의견 보완 */
     let augOpinionTs='';
