@@ -637,7 +637,7 @@ async function naverSearch(query){
 async function geminiSearch(query){
   const key=document.getElementById('geminiKey').value.trim();if(!key)return null;
   try{
-    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:600,model:'gemini-2.0-flash'})});
+    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:600,model:'gemini-3.1-flash-lite-preview'})});
     const d=await r.json();
     if(d.error) return null;
     if(d.text) return d.text;
@@ -656,7 +656,7 @@ async function checkUrls(urls) {
   }
 }
 
-async function geminiAsk(prompt, max_tokens, model='gemini-2.0-flash'){
+async function geminiAsk(prompt, max_tokens, model='gemini-3.1-flash-lite-preview'){
   const key=document.getElementById('geminiKey').value.trim();if(!key)return null;
   try{
     const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt,max_tokens:max_tokens||800, model})});
@@ -843,7 +843,7 @@ async function generateNaver(){
       if(rawUrls.length){
         try{
           const judgeQ=`다음 URL 목록에서 "${fNvKw}" 관련 공식 예매/신청/정보 사이트 URL만 골라주세요.\n\n[포함기준] 공식 예매처, 티켓 플랫폼, 정부/공공기관 신청 페이지, 공식 브랜드 사이트\n[제외기준] 블로그, 뉴스기사, 커뮤니티, SNS, 유튜브\n\n[URL 목록]\n${rawUrls.join('\n')}\n\nJSON 배열만 반환 (없으면 빈 배열): ["url1","url2",...]`;
-          const judgeRes=await geminiAsk(judgeQ,500,'gemini-2.0-flash');
+          const judgeRes=await geminiAsk(judgeQ,500,'gemini-3.1-flash-lite-preview');
           const matched=(judgeRes||'').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
           const picked=JSON.parse(matched?matched[0]:'[]');
           const validPicked=isLocal ? await checkUrls(picked.filter(u=>typeof u==='string'&&u.startsWith('http'))) : picked.filter(u=>typeof u==='string'&&u.startsWith('http'));
@@ -1051,7 +1051,7 @@ async function generateTistory(){
       if(tsRawUrls.length){
         try{
           const judgeQ=`다음 URL 목록에서 "${fTsKw}" 관련 공식 예매/신청/정보 사이트 URL만 골라주세요.\n\n[포함기준] 공식 예매처, 티켓 플랫폼, 정부/공공기관 신청 페이지, 공식 브랜드 사이트\n[제외기준] 블로그, 뉴스기사, 커뮤니티, SNS, 유튜브\n\n[URL 목록]\n${tsRawUrls.join('\n')}\n\nJSON 배열만 반환 (없으면 빈 배열): ["url1","url2",...]`;
-          const judgeRes=await geminiAsk(judgeQ,500,'gemini-2.0-flash');
+          const judgeRes=await geminiAsk(judgeQ,500,'gemini-3.1-flash-lite-preview');
           const matched=(judgeRes||'').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
           const picked=JSON.parse(matched?matched[0]:'[]');
           const validPicked=isLocal ? await checkUrls(picked.filter(u=>typeof u==='string'&&u.startsWith('http'))) : picked.filter(u=>typeof u==='string'&&u.startsWith('http'));
