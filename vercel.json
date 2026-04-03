@@ -1,9 +1,13 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/api/claude", "dest": "/api/claude.js" },
+    { "src": "/api/naver", "dest": "/api/naver.js" },
     { "src": "/api/tavily", "dest": "/api/tavily.js" },
-    { "src": "/api/image", "dest": "/api/image.js" },
+    { "src": "/api/gemini", "dest": "/api/gemini.js" },
+    { "src": "/api/gemini-image", "dest": "/api/gemini-image.js" },
+    { "src": "/api/save-all", "dest": "/api/save-all.js" },
+    { "src": "/api/save-image", "dest": "/api/save-image.js" },
+    { "src": "/api/git-push", "dest": "/api/git-push.js" },
     { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }
