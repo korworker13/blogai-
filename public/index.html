@@ -1163,7 +1163,10 @@ async function generateGeminiImage(uid) {
   btn.disabled = true;
   btn.textContent = '⏳ 생성 중...';
   try {
-    const prompt = p.prompt_gpt || p.prompt_en || p.prompt_ko || p.title || '';
+    const basePrompt = (p.prompt_ko || p.prompt_gpt || p.prompt_en || p.title || '')
+      .replace(/\[여기에 제목을 입력하세요\]/g, p.title || '')
+      .replace(/\[여기에 내용을 작성하세요\]/g, p.caption || p.title || '');
+    const prompt = basePrompt;
     const r = await fetch('/api/gemini-image', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
