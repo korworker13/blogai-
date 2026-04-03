@@ -47,6 +47,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .fld input[type=password]{font-family:'JetBrains Mono',monospace;font-size:12px}
 .fld textarea{min-height:60px;font-size:12px}
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
 .memo-card{background:linear-gradient(135deg,rgba(245,158,11,.07),rgba(251,191,36,.03));border:1px solid rgba(245,158,11,.22);border-radius:var(--r);padding:13px}
 .memo-hint{font-size:11px;color:var(--tx3);line-height:1.65;margin-top:6px}
@@ -323,21 +324,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <textarea id="opinionTs" placeholder="예: 현장에서 줄이 꽤 길었어요. 주차는 1km 떨어진 공영주차장 추천. 오전 일찍 가면 한산해요." style="min-height:52px;font-size:12px"></textarea>
     <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
   </div>
-  <div class="fld" style="margin-top:6px"><label>이미지 수</label>
-    <input type="number" id="imgCount" min="1" max="10" value="4"></div>
-  <div class="fld"><label>네이버 글자수</label>
+
+  <!-- 글자수/이미지 설정을 가로 3칸으로 깔끔하게 배치 -->
+  <div class="r3" style="margin-top:6px">
+    <div class="fld"><label>이미지 수</label>
+      <input type="number" id="imgCount" min="1" max="10" value="4"></div>
+    <div class="fld"><label>네이버 글자수</label>
       <select id="nvChar"><option value="1200">1,200자+</option><option value="1500" selected>1,500자+</option></select></div>
     <div class="fld"><label>티스토리 글자수</label>
       <select id="tsChar"><option value="2000">2,000자+</option><option value="2500" selected>2,500자+</option><option value="3000">3,000자+</option></select></div>
-<div class="tog" style="margin-top:7px;border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.06)">
-  <span style="color:var(--gr);font-weight:600">🎯 애드센스 승인 모드</span>
-  <label class="tw"><input type="checkbox" id="approvalMode"><div class="ttrack" style=""></div><div class="tthumb"></div></label>
-</div>
-<div id="approvalHint" style="display:none;font-size:11px;color:var(--tx2);background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:var(--rs);padding:8px 10px;margin-top:5px;line-height:1.7">
-  ✅ AI 냄새 최소화 · 1인칭 경험 중심 · 문장 다양화<br>
-  ⚠️ 승인 후에는 토글 끄고 수익 모드로 전환하세요
-</div>
-  <div class="fld"><label>구성 요소</label>
+  </div>
+
+  <div class="tog" style="margin-top:7px;border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.06)">
+    <span style="color:var(--gr);font-weight:600">🎯 애드센스 승인 모드</span>
+    <label class="tw"><input type="checkbox" id="approvalMode"><div class="ttrack"></div><div class="tthumb"></div></label>
+  </div>
+  <div id="approvalHint" style="display:none;font-size:11px;color:var(--tx2);background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:var(--rs);padding:8px 10px;margin-top:5px;line-height:1.7">
+    ✅ AI 냄새 최소화 · 1인칭 경험 중심 · 문장 다양화<br>
+    ⚠️ 승인 후에는 토글 끄고 수익 모드로 전환하세요
+  </div>
+
+  <div class="fld" style="margin-top:10px"><label>구성 요소</label>
     <div class="tags" id="optTags">
       <span class="tag on" data-v="경험담">경험담</span>
       <span class="tag on" data-v="FAQ">FAQ</span>
@@ -347,10 +354,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
       <span class="tag" data-v="여행 팁">여행 팁</span>
     </div>
   </div>
-</div>
+</div> <!-- memo-card 정상 종료 -->
 
+</div> <!-- sb-sc (스크롤 영역) 정상 종료 -->
 
-<div>
+<!-- 하단 생성 버튼 -->
+<div style="padding:15px;border-top:1px solid var(--bd);background:var(--bg2);">
   <div class="r2">
     <button class="btn-gen" id="genNvBtn" onclick="generateNaver()" style="background:linear-gradient(135deg,var(--nv),#02b350);">📱 네이버 단독 생성</button>
     <button class="btn-gen" id="genTsBtn" onclick="generateTistory()" style="background:linear-gradient(135deg,var(--ts),#e65c20);">✈️ 티스토리 단독 생성</button>
