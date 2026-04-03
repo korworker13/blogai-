@@ -29,7 +29,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .ksaved.on{display:flex}
 .wrap{display:flex;flex:1;overflow:hidden;align-items:stretch;position:relative}
 .sb{width:334px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;position:fixed;top:52px;left:0;bottom:0;height:calc(100vh - 52px);z-index:10}
-.sb-sc{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sb-sc{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
 .sb-sc::-webkit-scrollbar{width:3px}
 .sb-sc::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:calc(100vh - 52px);margin-left:334px}
@@ -76,16 +76,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .prog-track{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
 .prog-bar{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--tl));border-radius:2px;transition:width .4s ease}
 .prog-lbl{font-size:11px;color:var(--tx3);text-align:center;margin-top:4px;min-height:15px}
-.sched-card{background:linear-gradient(135deg,rgba(245,158,11,.05),rgba(251,191,36,.03));border:1px solid rgba(245,158,11,.18);border-radius:var(--r);padding:13px}
-.stimes{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
-.stime{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px}
-.stl{font-size:9px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px}
-.str{display:flex;align-items:center;justify-content:space-between}
-.next-box{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;display:none;margin-top:7px}
-.next-lbl{font-size:10px;color:var(--tx3);margin-bottom:2px}
-.next-val{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--tl)}
-.slog{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;max-height:80px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx3);margin-top:7px;line-height:1.7}
-.lok{color:var(--gr)}.lerr{color:var(--rd)}.linf{color:var(--tl)}
 .tabs{display:flex;border-bottom:1px solid var(--bd);background:var(--bg2);padding:0 14px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:11px 13px;font-size:12px;font-family:'Noto Sans KR',sans-serif;background:none;border:none;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
@@ -94,9 +84,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .tab.tst.on{color:var(--ts);border-bottom-color:var(--ts)}
 .tab.imt.on{color:var(--pu);border-bottom-color:var(--pu)}
 .tab.fixt.on{color:#f59e0b;border-bottom-color:#f59e0b}
-.out-area{flex:1;overflow-y:auto;display:block;padding:15px;position:relative;}
-.out-area::-webkit-scrollbar{width:4px}
-.out-area::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 .pane{display:none}.pane.on{display:block}
 .ohdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:7px}
 .obox{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre-wrap;word-break:break-all;max-height:600px;overflow-y:auto}
@@ -185,9 +172,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 @media(max-width:768px){
   html,body{overflow:auto;height:auto}
   .wrap{flex-direction:column;overflow:visible}
-  .sb{width:100%;border-right:none;overflow:visible}
+  .sb{width:100%;border-right:none;overflow:visible;position:relative;height:auto;top:auto;left:auto;bottom:auto}
   .sb-sc{overflow:visible}
-  .main{min-height:500px;overflow:visible;display:none}
+  .main{min-height:500px;overflow:visible;display:none;margin-left:0}
   .main.on{display:flex}
   .out-area{overflow:visible;max-height:none}
   .mob-nav{display:flex}
@@ -323,14 +310,37 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <textarea id="opinionTs" placeholder="예: 현장에서 줄이 꽤 길었어요. 주차는 1km 떨어진 공영주차장 추천. 오전 일찍 가면 한산해요." style="min-height:52px;font-size:12px"></textarea>
     <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
   </div>
-  <div class="fld" style="margin-top:6px"><label>이미지 수</label>
-    <input type="number" id="imgCount" min="1" max="10" value="4"></div>
-  <div class="fld"><label>네이버 글자수</label>
+
+  <div class="fld" style="margin-top:6px">
+    <label>이미지 스타일</label>
+    <div class="exp-select">
+      <button type="button" class="exp-btn on" data-istyle="infographic" onclick="setImgStyle('infographic')">인포그래픽</button>
+      <button type="button" class="exp-btn" data-istyle="photo" onclick="setImgStyle('photo')">실제 사진</button>
+      <button type="button" class="exp-btn" data-istyle="mixed" onclick="setImgStyle('mixed')">혼합 스타일</button>
+    </div>
+    <input type="hidden" id="imgStyle" value="infographic">
+  </div>
+
+  <!-- 글자수/이미지 설정을 가로 3칸으로 깔끔하게 배치 -->
+  <div class="r3" style="margin-top:6px">
+    <div class="fld"><label>이미지 수</label>
+      <input type="number" id="imgCount" min="1" max="10" value="4"></div>
+    <div class="fld"><label>네이버 글자수</label>
       <select id="nvChar"><option value="1200">1,200자+</option><option value="1500" selected>1,500자+</option></select></div>
     <div class="fld"><label>티스토리 글자수</label>
       <select id="tsChar"><option value="2000">2,000자+</option><option value="2500" selected>2,500자+</option><option value="3000">3,000자+</option></select></div>
   </div>
-  <div class="fld"><label>구성 요소</label>
+
+  <div class="tog" style="margin-top:7px;border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.06)">
+    <span style="color:var(--gr);font-weight:600">🎯 애드센스 승인 모드</span>
+    <label class="tw"><input type="checkbox" id="approvalMode"><div class="ttrack"></div><div class="tthumb"></div></label>
+  </div>
+  <div id="approvalHint" style="display:none;font-size:11px;color:var(--tx2);background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:var(--rs);padding:8px 10px;margin-top:5px;line-height:1.7">
+    ✅ AI 냄새 최소화 · 1인칭 경험 중심 · 문장 다양화<br>
+    ⚠️ 승인 후에는 토글 끄고 수익 모드로 전환하세요
+  </div>
+
+  <div class="fld" style="margin-top:10px"><label>구성 요소</label>
     <div class="tags" id="optTags">
       <span class="tag on" data-v="경험담">경험담</span>
       <span class="tag on" data-v="FAQ">FAQ</span>
@@ -342,8 +352,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   </div>
 </div>
 
+</div>
 
-<div>
+<!-- 하단 생성 버튼 -->
+<div style="padding:15px;border-top:1px solid var(--bd);background:var(--bg2);flex-shrink:0;">
   <div class="r2">
     <button class="btn-gen" id="genNvBtn" onclick="generateNaver()" style="background:linear-gradient(135deg,var(--nv),#02b350);">📱 네이버 단독 생성</button>
     <button class="btn-gen" id="genTsBtn" onclick="generateTistory()" style="background:linear-gradient(135deg,var(--ts),#e65c20);">✈️ 티스토리 단독 생성</button>
@@ -351,7 +363,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   <div class="prog"><div class="prog-track"><div class="prog-bar" id="pbar"></div></div><div class="prog-lbl" id="plbl"></div></div>
 </div>
 
-</div>
 </div>
 
 <div class="main" id="main">
@@ -506,7 +517,6 @@ let opts=['경험담','FAQ','핵심 요약표','체크리스트'];
 let fixTarget='nv';
 let gd={ts:'',nv:'',nvPrompts:[],tsPrompts:[]};
 let allPromptData={};
-let schedTimer=null,schedActive=false;
 let isLocal=false; // 로컬/Vercel 자동 감지
 let previousTsKeywords={}; // {카테고리: [이전 추천 키워드들]}
 let previousNvKeywords=[]; // 이전 네이버 추천 키워드들
@@ -546,11 +556,7 @@ function mv(v){
   document.getElementById('mob-s').classList.toggle('on',v==='s');
   document.getElementById('mob-r').classList.toggle('on',v==='r');
 }
-function addLog(m,cls='linf'){
-  const b=document.getElementById('slog');
-  const t=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  b.innerHTML+=`<div class="${cls}">[${t}] ${m}</div>`;b.scrollTop=b.scrollHeight;
-}
+function addLog(){}
 function setFT(t){fixTarget=t;['nv','ts'].forEach(k=>document.getElementById('ft-'+k).classList.remove('on'));document.getElementById('ft-'+t).classList.add('on');}
 function setFTY(btn,txt){document.querySelectorAll('.ftybtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('fixReq').value=txt;}
 function setExperienceType(v){
@@ -636,15 +642,6 @@ async function geminiAsk(prompt, max_tokens, model='gemini-2.0-flash'){
     return d.text||null;
   }catch(e){window._lastGeminiErr=e.message;return null;}
 }
-/* ═══ SEO 파일명 ═══ */
-function seoName(raw,num,prefix=''){
-  const m={'정부':'gov','지원금':'fund','복지':'welfare','여행':'travel','관광':'tour','국내':'domestic','해외':'overseas','서울':'seoul','부산':'busan','제주':'jeju','경주':'gyeongju','전주':'jeonju','강릉':'gangneung','속초':'sokcho','도쿄':'tokyo','오사카':'osaka','파리':'paris','방콕':'bangkok','발리':'bali','건강':'health','금융':'finance','청년':'youth','계좌':'account','신청':'apply','정보':'info','이슈':'issue','월세':'rent'};
-  let b=raw||'';Object.entries(m).forEach(([k,v])=>{b=b.replace(new RegExp(k,'g'),v+'-');});
-  b=b.toLowerCase().replace(/[^\w-]/g,'').replace(/-+/g,'-').replace(/^-|-$/g,'').substring(0,24)||'img';
-  const date=new Date().toISOString().slice(0,10).replace(/-/g,'');
-  return `${prefix}${b}-${date}-0${num}.jpg`;
-}
-
 /* ═══ 키워드 추천 ═══ */
 async function fetchKw(){
   const gk=document.getElementById('geminiKey').value.trim();
@@ -814,7 +811,7 @@ async function generateNaver(){
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
 
-      const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함`;
+      const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함`;
       nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-3.1-pro-preview')||''; // Text generation
       toast('✅ [3단계] Gemini 팩트+목차 완료');
     }
@@ -836,7 +833,7 @@ async function generateNaver(){
     const nvMemo=memoNv?`\n\n━━ 블로그 주인 메모 (반드시 글에 녹여낼 것) ━━\n${memoNv}\n━━ 끝 ━━`:'';
     const nvOp=augOpinionNv?`\n\n━━ 블로그 주인 추가 의견 (글 중간에 자연스럽게 녹여낼 것) ━━\n${augOpinionNv}\n━━ 끝 ━━`:'';
     
-    const nvPromptTemplate = `[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]\n키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 애드포스트 수익 전략 (필수 준수):\n\n【1. CTR 클릭률 극대화】\n- 제목: 숫자("3가지", "월 30만원") + 손해/혜택/궁금증 자극 표현 필수\n- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)\n- 각 소제목도 클릭욕구 자극하는 표현 사용\n\n【2. 황금 키워드 + 고단가 키워드 필수 포함】\n- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치\n- 대출, 보험, 카드, 주식, 재테크, 세금, 환급, 지원금, 복지, 청약 중 관련 키워드를 본문에 자연스럽게 포함\n- 카테고리 "${nvKwCat}" 관련 고단가 키워드를 소제목 또는 문단에 배치\n- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용\n\n【3. 이슈성 + 정보성 결합】\n- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)\n- 중반부: 구체적 수치/조건/절차/혜택 정보\n- 후반부: 독자 행동 유도(신청, 비교, 확인 등)\n\n【4. 체류시간 극대화】\n- 소제목 6개 이상 (각각 독립적 정보 단위)\n- FAQ 5개 이상 (실제 검색 의도와 일치)\n- 단계별 설명 또는 비교 목록 포함\n- 관련 카테고리 키워드로 추가 읽을거리 유도\n\n【5. 경험 자연스럽게 녹이기】\n- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입\n- ${expGuide}\n- 경험 직후 바로 관련 팁/정보로 연결\n\n기술 규칙:\n- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심\n- 표(table) 절대 금지\n- 단락 사이 빈 줄 필수\n- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)\n- 순수 텍스트 + 이모지만 사용\n\n형식:\n첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]\n도입부 3줄: 공감 + 이슈 + 해결 암시\n소제목 6개+: 이모지 + 자극적이고 정보적인 소제목\n각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입\n마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가\n\n★ 이미지 배치 규칙 (매우 중요, 절대 몰아서 넣지 말 것):\n- [이미지1 삽입 위치 - 설명]: 도입부 또는 첫 소제목 바로 뒤\n- [이미지2 삽입 위치 - 설명]: 두/세번째 소제목 뒤\n- [이미지3 삽입 위치 - 설명]: 중반부 소제목 뒤\n- [이미지4 삽입 위치 - 설명]: 후반부 소제목 뒤\n- [이미지5 삽입 위치 - 설명]: 마무리 직전 (해당하는 이미지 수 만큼만)\n- 반드시 각 소제목 사이사이에 분산 배치, 마지막에 몰아서 넣기 절대 금지\n\n태그 20개 맨 아래 (# 없이 줄바꿈)\nHTML 태그 없이 순수 텍스트${nvMemo}${nvOp}${nvCtx}\n역할: 대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`;
+    const nvPromptTemplate = `[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]\n키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 애드포스트 수익 전략 (필수 준수):\n\n【1. CTR 클릭률 극대화】\n- 제목: 숫자("3가지", "월 30만원") + 손해/혜택/궁금증 자극 표현 필수\n- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)\n- 각 소제목도 클릭욕구 자극하는 표현 사용\n\n【2. 황금 키워드 + 고단가 키워드 필수 포함】\n- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치\n- 카테고리 "${nvKwCat}"와 직접 관련된 고단가 키워드만 자연스럽게 포함 (글 주제와 무관한 키워드 강제 삽입 금지)\n- 카테고리 "${nvKwCat}" 관련 고단가 키워드를 소제목 또는 문단에 배치\n- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용\n\n【3. 이슈성 + 정보성 결합】\n- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)\n- 중반부: 구체적 수치/조건/절차/혜택 정보\n- 후반부: 독자 행동 유도(신청, 비교, 확인 등)\n\n【4. 체류시간 극대화】\n- 소제목 6개 이상 (각각 독립적 정보 단위)\n- FAQ 5개 이상 (실제 검색 의도와 일치)\n- 단계별 설명 또는 비교 목록 포함\n- 관련 카테고리 키워드로 추가 읽을거리 유도\n\n【5. 경험 자연스럽게 녹이기】\n- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입\n- ${expGuide}\n- 경험 직후 바로 관련 팁/정보로 연결\n\n기술 규칙:\n- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심\n- 표(table) 절대 금지\n- 단락 사이 빈 줄 필수\n- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)\n- 순수 텍스트 + 이모지만 사용\n\n형식:\n첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]\n도입부 3줄: 공감 + 이슈 + 해결 암시\n소제목 6개+: 이모지 + 자극적이고 정보적인 소제목\n각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입\n마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가\n\n★ 이미지 배치 규칙 (매우 중요, 절대 몰아서 넣지 말 것):\n- [이미지1 삽입 위치 - 설명]: 도입부 또는 첫 소제목 바로 뒤\n- [이미지2 삽입 위치 - 설명]: 두/세번째 소제목 뒤\n- [이미지3 삽입 위치 - 설명]: 중반부 소제목 뒤\n- [이미지4 삽입 위치 - 설명]: 후반부 소제목 뒤\n- [이미지5 삽입 위치 - 설명]: 마무리 직전 (해당하는 이미지 수 만큼만)\n- 반드시 각 소제목 사이사이에 분산 배치, 마지막에 몰아서 넣기 절대 금지\n\n태그 20개 맨 아래 (# 없이 줄바꿈)\nHTML 태그 없이 순수 텍스트${nvMemo}${nvOp}${nvCtx}\n역할: 대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`;
 
     const nvText = await geminiAsk(nvPromptTemplate, 5500, 'gemini-3.1-pro-preview');
     if(!nvText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
@@ -855,7 +852,13 @@ async function generateNaver(){
       return `이미지${i+1}: "${h.slice(0,40)}" 소제목에 해당하는 이미지`;
     }).join('\n');
     const nvContent = gd.nv.replace(/\s+/g,' ').trim().slice(0,600);
-    const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. 정책/지원금/금융→인포그래픽·카드뉴스 스타일\n5. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지, 자연스러운 일반 화질 느낌)\n6. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n7. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
+    const selectedStyle = document.getElementById('imgStyle').value;
+    const styleInstruction = selectedStyle==='photo'
+      ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
+      : selectedStyle==='mixed'
+      ? 'A mix of realistic photography and graphic overlays, modern digital art style, vibrant and engaging.'
+      : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
+    const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${styleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지)\n5. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n6. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
     
     let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-3.1-flash-lite-preview');
     if(!promptRaw || promptRaw.length < 50){
@@ -992,7 +995,7 @@ async function generateTistory(){
     let tsOutline='';
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
-      const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함`;
+      const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함`;
       tsOutline=await geminiAsk(outlineQ,1200,'gemini-3.1-pro-preview')||'';
     }
 
@@ -1013,7 +1016,10 @@ async function generateTistory(){
     const tsMemo=memoTs?`\n\n━━ 블로그 주인 메모 (반드시 글에 녹여낼 것) ━━\n${memoTs}\n━━ 끝 ━━`:'';
     const tsOp=augOpinionTs?`\n\n━━ 블로그 주인 추가 의견 (글 중간에 자연스럽게 녹여낼 것) ━━\n${augOpinionTs}\n━━ 끝 ━━`:'';
 
-    const tsPromptTemplate=`[티스토리 블로그 — HTML 형식 SEO 최적화]\n키워드: "${fTsKw}" | 카테고리: ${tsKwCat} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 티스토리 HTML 규칙 (필수):\n- 반드시 완전한 HTML 코드로 작성 (body 내용만, html/head 태그 불필요)\n- <h2> 소제목 6개 이상 (SEO 키워드 포함)\n- <h3> 부제목 활용\n- <p> 단락 (2~3문장)\n- <ul><li> 목록 활용\n- <strong> 중요 키워드 강조\n- <br><br> 단락 사이 간격\n- 표(table) 금지\n- 이모지 적극 활용\n\n★ SEO 전략:\n- 제목: <h1> 또는 첫 <h2>에 키워드 "${fTsKw}" 포함\n- 본문 전체에 키워드 자연스럽게 반복 배치\n- FAQ <h2> 섹션 5개 이상 포함\n- 카테고리 "${tsKwCat}" 관련 고단가 키워드 포함\n\n★ 경험 자연스럽게 녹이기:\n- ${expGuide}\n\n★ 이미지 배치:\n- <!-- 이미지1 --> 부터 <!-- 이미지${imgCount} --> 주석으로 각 이미지 위치 표시\n- 소제목 사이사이에 분산 배치\n\n맨 아래 태그 20개: <p>태그1, 태그2, ...</p>형식${tsMemo}${tsOp}${tsCtx}\n역할: 대한민국 최고 티스토리 SEO 전문가이자 수익형 블로거 ${nick}. 카테고리: ${tsKwCat}.`;
+    const isApprovalMode = document.getElementById('approvalMode')?.checked || false;
+    const tsPromptTemplate = isApprovalMode
+? `[티스토리 블로그 — 구글 애드센스 승인용 고품질 글]\n키워드: "${fTsKw}" | 카테고리: ${tsKwCat} | 목표: 2000자+ | 이미지: ${imgCount}개\n\n★ 승인 심사관이 보는 기준 (E-E-A-T):\n구글 심사관은 "이 블로그가 없어지면 인터넷이 아쉬울까?"를 봅니다.\n따라서 아래 규칙을 반드시 준수하세요.\n\n【글쓰기 핵심 규칙】\n- 반드시 완전한 HTML 코드로 작성 (body 내용만)\n- <h1> 절대 사용 금지 (티스토리 글제목이 자동으로 h1)\n- <h2> 소제목 5개 이상\n- <p> 단락은 2~4문장으로 길이를 불규칙하게 (짧은 것, 긴 것 섞기)\n- <strong> 문단당 1개 이내\n- 표(table) 금지\n\n【AI 냄새 제거 규칙 — 핵심】\n- 문장 시작을 다양하게: "~합니다" 연속 3번 이상 금지\n- 소제목마다 동일한 문장 구조 금지 (다양한 표현 사용)\n- "먼저", "다음으로", "마지막으로" 순서 나열 패턴 금지\n- "~에 대해 알아보겠습니다" 같은 AI 전형 문구 금지\n- 숫자 나열("첫째, 둘째, 셋째") 패턴 최소화\n\n【1인칭 경험 중심 작성】\n- 블로거 본인이 직접 경험한 것처럼 작성\n- 글 전체에 1인칭("저는", "제가", "저도") 자연스럽게 분산\n- 구체적 디테일 포함: 날짜/계절/날씨/소요시간/가격/느낌\n- 예: "지난 10월 주말에 다녀왔는데 날씨가 선선해서 걷기 딱 좋았어요"\n\n【문장 다양성 규칙】\n- 구어체("~거든요", "~더라고요", "~잖아요")와 문어체 혼용\n- 독자에게 말 건네는 표현 중간중간 삽입 ("혹시 아셨나요?", "저만 몰랐던 건지...")\n- 감탄사/반응 포함 ("진짜 대박이었어요", "솔직히 기대 안 했는데")\n\n【구조】\n첫 번째 <p>: 100~120자 이내 핵심 요약 + 키워드 포함 (메타디스크립션 자동 적용)\n본문: <h2> 소제목별 3~5문단, 경험담 자연 삽입\n마무리: 독자 공감 + 다음 방문 유도\n\n★ 이미지 배치:\n<!-- 이미지1 --> 부터 <!-- 이미지${imgCount} --> 주석으로 소제목 사이사이 분산 배치\n\n맨 아래에: <!-- TISTORY-TAGS: 태그1,태그2,...태그20 -->\n\n역할: 10년 경력 여행/생활 블로거 ${nick}. 직접 다녀온 경험을 솔직하게 쓰는 사람.${tsMemo}${tsOp}${tsCtx}`
+: `[티스토리 블로그 — HTML 형식 SEO 최적화]\n키워드: "${fTsKw}" | 카테고리: ${tsKwCat} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 티스토리 HTML 규칙 (필수):\n- 반드시 완전한 HTML 코드로 작성 (body 내용만, html/head 태그 불필요)\n- <h1> 절대 사용 금지 (티스토리 글제목이 자동으로 h1)\n- <h2> 소제목 6개 이상 (SEO 키워드 포함)\n- <h3> 부제목 활용\n- <p> 단락 (2~3문장)\n- <ul><li> 목록 활용\n- <strong> 문단당 1~2개 이내로 중요 키워드만 강조\n- <br><br> 단락 사이 간격\n- 표(table) 금지\n- 이모지 적극 활용\n\n★ SEO 전략:\n- 첫 번째 <p>: 100~120자 이내 핵심 키워드 "${fTsKw}" 포함 요약문 (메타디스크립션 자동 적용)\n- 첫 <h2>에 키워드 "${fTsKw}" 포함\n- 본문 전체에 키워드 자연스럽게 반복 배치\n- FAQ <h2> 섹션 5개 이상 포함\n- 카테고리 "${tsKwCat}" 관련 고단가 키워드 포함\n\n★ 경험 자연스럽게 녹이기:\n- ${expGuide}\n\n★ 이미지 배치:\n- <!-- 이미지1 --> 부터 <!-- 이미지${imgCount} --> 주석으로 각 이미지 위치 표시\n- 소제목 사이사이에 분산 배치\n\n맨 아래에: <!-- TISTORY-TAGS: 태그1,태그2,...태그20 -->\n역할: 대한민국 최고 티스토리 SEO 전문가이자 수익형 블로거 ${nick}. 카테고리: ${tsKwCat}.${tsMemo}${tsOp}${tsCtx}`;
 
     const tsText=await geminiAsk(tsPromptTemplate,5500,'gemini-3.1-pro-preview');
     if(!tsText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
@@ -1031,7 +1037,13 @@ async function generateTistory(){
       return `이미지${i+1}: "${h.slice(0,40)}" 소제목에 해당하는 이미지`;
     }).join('\n');
 
-    const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
+    const tsSelectedStyle = document.getElementById('imgStyle').value;
+    const tsStyleInstruction = tsSelectedStyle==='photo'
+      ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
+      : tsSelectedStyle==='mixed'
+      ? 'A mix of realistic photography and graphic overlays, modern digital art style, vibrant and engaging.'
+      : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
+    const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${tsStyleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
 
     let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-3.1-flash-lite-preview');
     if(!tsPromptRaw||tsPromptRaw.length<50) tsPromptRaw=await geminiAsk(tsImgPromptQ,3500,'gemini-3.1-flash-lite-preview');
@@ -1151,7 +1163,10 @@ async function generateGeminiImage(uid) {
   btn.disabled = true;
   btn.textContent = '⏳ 생성 중...';
   try {
-    const prompt = p.prompt_gpt || p.prompt_en || p.prompt_ko || p.title || '';
+    const basePrompt = (p.prompt_ko || p.prompt_gpt || p.prompt_en || p.title || '')
+      .replace(/\[여기에 제목을 입력하세요\]/g, p.title || '')
+      .replace(/\[여기에 내용을 작성하세요\]/g, p.caption || p.title || '');
+    const prompt = basePrompt;
     const r = await fetch('/api/gemini-image', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -1308,64 +1323,15 @@ function renderHist(){
     </div>`).join('');
 }
 
-/* ═══ SCHEDULER ═══ */
-function toggleSched(restore=false){
-  const on=document.getElementById('schedTgl').checked;schedActive=on;
-  if(on){
-    localStorage.setItem('bai_sched','1');
-    localStorage.setItem('bai_st1',document.getElementById('st1').value);
-    localStorage.setItem('bai_st2',document.getElementById('st2').value);
-    if(schedTimer)clearInterval(schedTimer);
-    schedTimer=setInterval(checkSched,30000);checkSched();
-    document.getElementById('nextBox').style.display='block';
-    if(!restore){addLog('🟢 스케줄러 시작','lok');toast('⏰ 스케줄러 활성화!');}
-    updateNextRun();
-  }else{
-    localStorage.removeItem('bai_sched');
-    if(schedTimer){clearInterval(schedTimer);schedTimer=null;}
-    document.getElementById('nextBox').style.display='none';
-    addLog('⭕ 스케줄러 중지','linf');
-  }
-}
-async function checkSched(){
-  if(!schedActive)return;
-  const now=new Date(),h=now.getHours(),m=now.getMinutes(),td=now.toDateString();
-  const[h1,m1]=document.getElementById('st1').value.split(':').map(Number);
-  const[h2,m2]=document.getElementById('st2').value.split(':').map(Number);
-  const k1=`${td}-r1`,k2=`${td}-r2`;
-  if(h===h1&&Math.abs(m-m1)<=1&&!localStorage.getItem(k1)){localStorage.setItem(k1,'1');addLog('🌅 오전 자동 실행','linf');toast('🌅 오전 자동 생성 시작!');await autoRun();}
-  if(h===h2&&Math.abs(m-m2)<=1&&!localStorage.getItem(k2)){localStorage.setItem(k2,'1');addLog('☀️ 오후 자동 실행','linf');toast('☀️ 오후 자동 생성 시작!');await autoRun();}
-  updateNextRun();
-}
-async function autoRun(){
-  const gk=document.getElementById('geminiKey').value.trim();if(!gk){addLog('❌ API 키 없음','lerr');return;}
-  const tk=document.getElementById('tavilyKey').value.trim();
-  if(tk){
-    try{
-      const cat=document.getElementById('nvKwCat').value;
-      const res=await tavilySearch(`${cat} 최신 이슈 2026`);
-      let ctx=res?`\n\n[검색]\n${res.slice(0,1200)}\n[끝]`:'';
-      const kw=await geminiAsk(`"${cat}" 최근 3일 이내 핫한 키워드 1개.${ctx}\n키워드 1개만 반환:`, 200, 'gemini-3.1-flash-lite-preview');
-      const clean=kw.replace(/["'\n]/g,'').trim().slice(0,50);
-      if(clean){document.getElementById('nvKw').value=clean;addLog(`🔥 키워드: ${clean}`,'lok');}
-    }catch(e){addLog('⚠ 키워드 갱신 실패','lerr');}
-  }
-  await generateNaver();
-  await generateTistory();
-}
-function updateNextRun(){
-  if(!schedActive)return;
-  const now=new Date();
-  const[h1,m1]=document.getElementById('st1').value.split(':').map(Number);
-  const[h2,m2]=document.getElementById('st2').value.split(':').map(Number);
-  const n1=new Date(now);n1.setHours(h1,m1,0,0);if(n1<=now)n1.setDate(n1.getDate()+1);
-  const n2=new Date(now);n2.setHours(h2,m2,0,0);if(n2<=now)n2.setDate(n2.getDate()+1);
-  const next=n1<n2?n1:n2;const diff=next-now;
-  const dh=Math.floor(diff/3600000),dm=Math.floor((diff%3600000)/60000);
-  document.getElementById('nextVal').textContent=`${next===n1?'오전 '+document.getElementById('st1').value:'오후 '+document.getElementById('st2').value} (${dh}시간 ${dm}분 후)`;
+function setImgStyle(v){
+  document.getElementById('imgStyle').value=v;
+  document.querySelectorAll('[data-istyle]').forEach(b=>b.classList.toggle('on',b.dataset.istyle===v));
 }
 
 /* ═══ INIT ═══ */
+document.getElementById('approvalMode').addEventListener('change', function(){
+  document.getElementById('approvalHint').style.display = this.checked ? 'block' : 'none';
+});
 loadKeys();
 renderHist();
 detectMode(); // 로컬/Vercel 자동 감지

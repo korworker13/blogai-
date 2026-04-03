@@ -327,7 +327,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' };
-    res.writeHead(200, { 'Content-Type': mime[path.extname(fullPath)] || 'text/plain' });
+    const headers = { 'Content-Type': mime[path.extname(fullPath)] || 'text/plain' };
+    if (path.extname(fullPath) === '.html') headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    res.writeHead(200, headers);
     res.end(data);
   });
 });
