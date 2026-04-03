@@ -602,7 +602,20 @@ async function tavilySearch(query){
   try{
     const r=await fetch('/api/tavily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,query})});
     const d=await r.json();
-    if(d.results){let ctx='';if(d.answer)ctx+=`[AI요약]\n${d.answer}\n\n`;ctx+=d.results.slice(0,6).map(r=>`[${r.title}]\n${r.content}`).join('\n\n');return ctx;}
+    if(d.results){
+      let ctx='';
+      if(d.answer)ctx+=`[AI요약]\n${d.answer}\n\n`;
+      ctx+=d.results.slice(0,6).map(r=>`[${r.title}]\n${r.content}`).join('\n\n');
+      // 로컬 모드에서만 URL 유효성 검증 후 출처 추가
+      if(isLocal){
+        const rawUrls=d.results.slice(0,6).map(r=>r.url).filter(Boolean);
+        if(rawUrls.length){
+          const validUrls=await checkUrls(rawUrls);
+          if(validUrls.length) ctx+=`\n\n[검증된 출처]\n${validUrls.join('\n')}`;
+        }
+      }
+      return ctx;
+    }
     return null;
   }catch(e){return null;}
 }
@@ -632,6 +645,16 @@ async function geminiSearch(query){
   }catch(e){return null;}
 }
 
+
+async function checkUrls(urls) {
+  try {
+    const res = await fetch('/api/check-url', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls})});
+    const data = await res.json();
+    return data.valid || [];
+  } catch(e) {
+    return urls; // 검증 실패 시 원본 그대로 통과
+  }
+}
 
 async function geminiAsk(prompt, max_tokens, model='gemini-2.0-flash'){
   const key=document.getElementById('geminiKey').value.trim();if(!key)return null;

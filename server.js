@@ -156,6 +156,27 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // URL 유효성 검증 API
+  if (req.method === 'POST' && req.url === '/api/check-url') {
+    const { urls } = await readBody(req);
+    if (!urls || !Array.isArray(urls)) { res.writeHead(200, {'Content-Type':'application/json'}); res.end(JSON.stringify({valid:[]})); return; }
+    const checkOne = (url) => new Promise((resolve) => {
+      try {
+        const lib = url.startsWith('https') ? https : http;
+        const r = lib.request(url, {method:'HEAD', timeout:4000}, (resp) => {
+          resolve([200,301,302,303].includes(resp.statusCode) ? url : null);
+        });
+        r.on('error', () => resolve(null));
+        r.on('timeout', () => { r.destroy(); resolve(null); });
+        r.end();
+      } catch(e) { resolve(null); }
+    });
+    const results = await Promise.all(urls.map(checkOne));
+    res.writeHead(200, {'Content-Type':'application/json'});
+    res.end(JSON.stringify({valid: results.filter(Boolean)}));
+    return;
+  }
+
   // 이미지 파일 저장 API
   if (req.method === 'POST' && req.url === '/api/save-image') {
     const { imageData, mimeType, filename } = await readBody(req);
