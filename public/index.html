@@ -311,6 +311,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
   </div>
 
+  <div class="fld" style="margin-top:6px">
+    <label>이미지 스타일</label>
+    <div class="exp-select">
+      <button type="button" class="exp-btn on" data-istyle="infographic" onclick="setImgStyle('infographic')">인포그래픽</button>
+      <button type="button" class="exp-btn" data-istyle="photo" onclick="setImgStyle('photo')">실제 사진</button>
+      <button type="button" class="exp-btn" data-istyle="mixed" onclick="setImgStyle('mixed')">혼합 스타일</button>
+    </div>
+    <input type="hidden" id="imgStyle" value="infographic">
+  </div>
+
   <!-- 글자수/이미지 설정을 가로 3칸으로 깔끔하게 배치 -->
   <div class="r3" style="margin-top:6px">
     <div class="fld"><label>이미지 수</label>
@@ -801,7 +811,7 @@ async function generateNaver(){
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
 
-      const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함`;
+      const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함`;
       nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-3.1-pro-preview')||''; // Text generation
       toast('✅ [3단계] Gemini 팩트+목차 완료');
     }
@@ -842,7 +852,13 @@ async function generateNaver(){
       return `이미지${i+1}: "${h.slice(0,40)}" 소제목에 해당하는 이미지`;
     }).join('\n');
     const nvContent = gd.nv.replace(/\s+/g,' ').trim().slice(0,600);
-    const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. 정책/지원금/금융→인포그래픽·카드뉴스 스타일\n5. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지, 자연스러운 일반 화질 느낌)\n6. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n7. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
+    const selectedStyle = document.getElementById('imgStyle').value;
+    const styleInstruction = selectedStyle==='photo'
+      ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
+      : selectedStyle==='mixed'
+      ? 'A mix of realistic photography and graphic overlays, modern digital art style, vibrant and engaging.'
+      : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
+    const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${styleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지)\n5. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n6. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
     
     let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-3.1-flash-lite-preview');
     if(!promptRaw || promptRaw.length < 50){
@@ -979,7 +995,7 @@ async function generateTistory(){
     let tsOutline='';
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
-      const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함`;
+      const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함`;
       tsOutline=await geminiAsk(outlineQ,1200,'gemini-3.1-pro-preview')||'';
     }
 
@@ -1021,7 +1037,13 @@ async function generateTistory(){
       return `이미지${i+1}: "${h.slice(0,40)}" 소제목에 해당하는 이미지`;
     }).join('\n');
 
-    const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
+    const tsSelectedStyle = document.getElementById('imgStyle').value;
+    const tsStyleInstruction = tsSelectedStyle==='photo'
+      ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
+      : tsSelectedStyle==='mixed'
+      ? 'A mix of realistic photography and graphic overlays, modern digital art style, vibrant and engaging.'
+      : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
+    const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${tsStyleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
 
     let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-3.1-flash-lite-preview');
     if(!tsPromptRaw||tsPromptRaw.length<50) tsPromptRaw=await geminiAsk(tsImgPromptQ,3500,'gemini-3.1-flash-lite-preview');
@@ -1296,6 +1318,11 @@ function renderHist(){
       <div class="hi-date">${i.date}</div>
       <button class="hi-del" onclick="delHist(${i.id},event)">×</button>
     </div>`).join('');
+}
+
+function setImgStyle(v){
+  document.getElementById('imgStyle').value=v;
+  document.querySelectorAll('[data-istyle]').forEach(b=>b.classList.toggle('on',b.dataset.istyle===v));
 }
 
 /* ═══ INIT ═══ */
