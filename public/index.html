@@ -47,7 +47,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .fld input[type=password]{font-family:'JetBrains Mono',monospace;font-size:12px}
 .fld textarea{min-height:60px;font-size:12px}
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
 .memo-card{background:linear-gradient(135deg,rgba(245,158,11,.07),rgba(251,191,36,.03));border:1px solid rgba(245,158,11,.22);border-radius:var(--r);padding:13px}
 .memo-hint{font-size:11px;color:var(--tx3);line-height:1.65;margin-top:6px}
@@ -77,16 +76,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .prog-track{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
 .prog-bar{height:100%;width:0;background:linear-gradient(90deg,var(--ac),var(--tl));border-radius:2px;transition:width .4s ease}
 .prog-lbl{font-size:11px;color:var(--tx3);text-align:center;margin-top:4px;min-height:15px}
-.sched-card{background:linear-gradient(135deg,rgba(245,158,11,.05),rgba(251,191,36,.03));border:1px solid rgba(245,158,11,.18);border-radius:var(--r);padding:13px}
-.stimes{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
-.stime{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px}
-.stl{font-size:9px;color:var(--tx3);text-transform:uppercase;margin-bottom:3px}
-.str{display:flex;align-items:center;justify-content:space-between}
-.next-box{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;display:none;margin-top:7px}
-.next-lbl{font-size:10px;color:var(--tx3);margin-bottom:2px}
-.next-val{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--tl)}
-.slog{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px;max-height:80px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx3);margin-top:7px;line-height:1.7}
-.lok{color:var(--gr)}.lerr{color:var(--rd)}.linf{color:var(--tl)}
 .tabs{display:flex;border-bottom:1px solid var(--bd);background:var(--bg2);padding:0 14px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:11px 13px;font-size:12px;font-family:'Noto Sans KR',sans-serif;background:none;border:none;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
@@ -95,9 +84,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .tab.tst.on{color:var(--ts);border-bottom-color:var(--ts)}
 .tab.imt.on{color:var(--pu);border-bottom-color:var(--pu)}
 .tab.fixt.on{color:#f59e0b;border-bottom-color:#f59e0b}
-.out-area{flex:1;overflow-y:auto;display:block;padding:15px;position:relative;}
-.out-area::-webkit-scrollbar{width:4px}
-.out-area::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 .pane{display:none}.pane.on{display:block}
 .ohdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:7px}
 .obox{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:15px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre-wrap;word-break:break-all;max-height:600px;overflow-y:auto}
@@ -354,9 +340,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
       <span class="tag" data-v="여행 팁">여행 팁</span>
     </div>
   </div>
-</div> <!-- memo-card 정상 종료 -->
+</div>
 
-</div> <!-- sb-sc (스크롤 영역) 정상 종료 -->
+</div>
 
 <!-- 하단 생성 버튼 -->
 <div style="padding:15px;border-top:1px solid var(--bd);background:var(--bg2);flex-shrink:0;">
@@ -521,7 +507,6 @@ let opts=['경험담','FAQ','핵심 요약표','체크리스트'];
 let fixTarget='nv';
 let gd={ts:'',nv:'',nvPrompts:[],tsPrompts:[]};
 let allPromptData={};
-let schedTimer=null,schedActive=false;
 let isLocal=false; // 로컬/Vercel 자동 감지
 let previousTsKeywords={}; // {카테고리: [이전 추천 키워드들]}
 let previousNvKeywords=[]; // 이전 네이버 추천 키워드들
@@ -561,11 +546,7 @@ function mv(v){
   document.getElementById('mob-s').classList.toggle('on',v==='s');
   document.getElementById('mob-r').classList.toggle('on',v==='r');
 }
-function addLog(m,cls='linf'){
-  const b=document.getElementById('slog');
-  const t=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  b.innerHTML+=`<div class="${cls}">[${t}] ${m}</div>`;b.scrollTop=b.scrollHeight;
-}
+function addLog(){}
 function setFT(t){fixTarget=t;['nv','ts'].forEach(k=>document.getElementById('ft-'+k).classList.remove('on'));document.getElementById('ft-'+t).classList.add('on');}
 function setFTY(btn,txt){document.querySelectorAll('.ftybtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('fixReq').value=txt;}
 function setExperienceType(v){
@@ -651,15 +632,6 @@ async function geminiAsk(prompt, max_tokens, model='gemini-2.0-flash'){
     return d.text||null;
   }catch(e){window._lastGeminiErr=e.message;return null;}
 }
-/* ═══ SEO 파일명 ═══ */
-function seoName(raw,num,prefix=''){
-  const m={'정부':'gov','지원금':'fund','복지':'welfare','여행':'travel','관광':'tour','국내':'domestic','해외':'overseas','서울':'seoul','부산':'busan','제주':'jeju','경주':'gyeongju','전주':'jeonju','강릉':'gangneung','속초':'sokcho','도쿄':'tokyo','오사카':'osaka','파리':'paris','방콕':'bangkok','발리':'bali','건강':'health','금융':'finance','청년':'youth','계좌':'account','신청':'apply','정보':'info','이슈':'issue','월세':'rent'};
-  let b=raw||'';Object.entries(m).forEach(([k,v])=>{b=b.replace(new RegExp(k,'g'),v+'-');});
-  b=b.toLowerCase().replace(/[^\w-]/g,'').replace(/-+/g,'-').replace(/^-|-$/g,'').substring(0,24)||'img';
-  const date=new Date().toISOString().slice(0,10).replace(/-/g,'');
-  return `${prefix}${b}-${date}-0${num}.jpg`;
-}
-
 /* ═══ 키워드 추천 ═══ */
 async function fetchKw(){
   const gk=document.getElementById('geminiKey').value.trim();
@@ -1324,63 +1296,6 @@ function renderHist(){
       <div class="hi-date">${i.date}</div>
       <button class="hi-del" onclick="delHist(${i.id},event)">×</button>
     </div>`).join('');
-}
-
-/* ═══ SCHEDULER ═══ */
-function toggleSched(restore=false){
-  const on=document.getElementById('schedTgl').checked;schedActive=on;
-  if(on){
-    localStorage.setItem('bai_sched','1');
-    localStorage.setItem('bai_st1',document.getElementById('st1').value);
-    localStorage.setItem('bai_st2',document.getElementById('st2').value);
-    if(schedTimer)clearInterval(schedTimer);
-    schedTimer=setInterval(checkSched,30000);checkSched();
-    document.getElementById('nextBox').style.display='block';
-    if(!restore){addLog('🟢 스케줄러 시작','lok');toast('⏰ 스케줄러 활성화!');}
-    updateNextRun();
-  }else{
-    localStorage.removeItem('bai_sched');
-    if(schedTimer){clearInterval(schedTimer);schedTimer=null;}
-    document.getElementById('nextBox').style.display='none';
-    addLog('⭕ 스케줄러 중지','linf');
-  }
-}
-async function checkSched(){
-  if(!schedActive)return;
-  const now=new Date(),h=now.getHours(),m=now.getMinutes(),td=now.toDateString();
-  const[h1,m1]=document.getElementById('st1').value.split(':').map(Number);
-  const[h2,m2]=document.getElementById('st2').value.split(':').map(Number);
-  const k1=`${td}-r1`,k2=`${td}-r2`;
-  if(h===h1&&Math.abs(m-m1)<=1&&!localStorage.getItem(k1)){localStorage.setItem(k1,'1');addLog('🌅 오전 자동 실행','linf');toast('🌅 오전 자동 생성 시작!');await autoRun();}
-  if(h===h2&&Math.abs(m-m2)<=1&&!localStorage.getItem(k2)){localStorage.setItem(k2,'1');addLog('☀️ 오후 자동 실행','linf');toast('☀️ 오후 자동 생성 시작!');await autoRun();}
-  updateNextRun();
-}
-async function autoRun(){
-  const gk=document.getElementById('geminiKey').value.trim();if(!gk){addLog('❌ API 키 없음','lerr');return;}
-  const tk=document.getElementById('tavilyKey').value.trim();
-  if(tk){
-    try{
-      const cat=document.getElementById('nvKwCat').value;
-      const res=await tavilySearch(`${cat} 최신 이슈 2026`);
-      let ctx=res?`\n\n[검색]\n${res.slice(0,1200)}\n[끝]`:'';
-      const kw=await geminiAsk(`"${cat}" 최근 3일 이내 핫한 키워드 1개.${ctx}\n키워드 1개만 반환:`, 200, 'gemini-3.1-flash-lite-preview');
-      const clean=kw.replace(/["'\n]/g,'').trim().slice(0,50);
-      if(clean){document.getElementById('nvKw').value=clean;addLog(`🔥 키워드: ${clean}`,'lok');}
-    }catch(e){addLog('⚠ 키워드 갱신 실패','lerr');}
-  }
-  await generateNaver();
-  await generateTistory();
-}
-function updateNextRun(){
-  if(!schedActive)return;
-  const now=new Date();
-  const[h1,m1]=document.getElementById('st1').value.split(':').map(Number);
-  const[h2,m2]=document.getElementById('st2').value.split(':').map(Number);
-  const n1=new Date(now);n1.setHours(h1,m1,0,0);if(n1<=now)n1.setDate(n1.getDate()+1);
-  const n2=new Date(now);n2.setHours(h2,m2,0,0);if(n2<=now)n2.setDate(n2.getDate()+1);
-  const next=n1<n2?n1:n2;const diff=next-now;
-  const dh=Math.floor(diff/3600000),dm=Math.floor((diff%3600000)/60000);
-  document.getElementById('nextVal').textContent=`${next===n1?'오전 '+document.getElementById('st1').value:'오후 '+document.getElementById('st2').value} (${dh}시간 ${dm}분 후)`;
 }
 
 /* ═══ INIT ═══ */
