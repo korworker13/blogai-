@@ -637,7 +637,7 @@ async function naverSearch(query){
 async function geminiSearch(query){
   const key=document.getElementById('geminiKey').value.trim();if(!key)return null;
   try{
-    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:600,model:'gemini-3.1-flash-lite-preview'})});
+    const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt:query,max_tokens:600,model:'gemini-3-flash-preview'})});
     const d=await r.json();
     if(d.error) return null;
     if(d.text) return d.text;
@@ -656,7 +656,7 @@ async function checkUrls(urls) {
   }
 }
 
-async function geminiAsk(prompt, max_tokens, model='gemini-3.1-flash-lite-preview'){
+async function geminiAsk(prompt, max_tokens, model='gemini-3-flash-preview'){
   const key=document.getElementById('geminiKey').value.trim();if(!key)return null;
   try{
     const r=await fetch('/api/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:key,prompt,max_tokens:max_tokens||800, model})});
@@ -706,7 +706,7 @@ async function fetchKw(){
         : '"'+cat+'" 애드포스트 수익 유리한 롱테일 키워드 10개. 고단가(대출/보험/카드/재테크/지원금) 우선.'+newsSection+excludeList+'\nJSON 배열만: ["키워드1",...,"키워드10"]';
     }
 
-    const t=await geminiAsk(prompt,500,'gemini-3.1-flash-lite-preview');
+    const t=await geminiAsk(prompt,500,'gemini-3-flash-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
     try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
@@ -766,7 +766,7 @@ async function fetchHot(){
           ? '"'+userKeyword+'" 관련 블로그 SEO 키워드 10개. 검색량 높고 애드포스트 유리한 것 우선.'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]'
           : '"'+cat+'" 카테고리 블로그 키워드 10개. 검색량 높고 애드포스트 고단가 우선.'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]');
 
-    const t = await geminiAsk(finalQ, 500, 'gemini-3.1-flash-lite-preview');
+    const t = await geminiAsk(finalQ, 500, 'gemini-3-flash-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
     try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
@@ -843,7 +843,7 @@ async function generateNaver(){
       if(rawUrls.length){
         try{
           const judgeQ=`다음 URL 목록에서 "${fNvKw}" 관련 공식 예매/신청/정보 사이트 URL만 골라주세요.\n\n[포함기준] 공식 예매처, 티켓 플랫폼, 정부/공공기관 신청 페이지, 공식 브랜드 사이트\n[제외기준] 블로그, 뉴스기사, 커뮤니티, SNS, 유튜브\n\n[URL 목록]\n${rawUrls.join('\n')}\n\nJSON 배열만 반환 (없으면 빈 배열): ["url1","url2",...]`;
-          const judgeRes=await geminiAsk(judgeQ,500,'gemini-3.1-flash-lite-preview');
+          const judgeRes=await geminiAsk(judgeQ,500,'gemini-3-flash-preview');
           const matched=(judgeRes||'').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
           const picked=JSON.parse(matched?matched[0]:'[]');
           const validPicked=isLocal ? await checkUrls(picked.filter(u=>typeof u==='string'&&u.startsWith('http'))) : picked.filter(u=>typeof u==='string'&&u.startsWith('http'));
@@ -858,7 +858,7 @@ async function generateNaver(){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
 
       const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함`;
-      nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-3.1-flash-preview')||''; // Text generation
+      nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-3-flash-preview')||''; // Text generation
       toast('✅ [3단계] Gemini 팩트+목차 완료');
     }
 
@@ -870,7 +870,7 @@ async function generateNaver(){
       setProg(18,'💭 의견 보완 중 (네이버)...');
       try{
         const opCtx = nvDeep ? `\n관련정보:\n${nvDeep.slice(0,400)}` : '';
-        augOpinionNv = await geminiAsk(`블로거 의견: "${opinionNv}"\n키워드: ${fNvKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`, 500, 'gemini-3.1-flash-preview'); // Text generation
+        augOpinionNv = await geminiAsk(`블로거 의견: "${opinionNv}"\n키워드: ${fNvKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`, 500, 'gemini-3-flash-preview'); // Text generation
       }catch(e){augOpinionNv=opinionNv;}
     }
 
@@ -881,7 +881,7 @@ async function generateNaver(){
     
     const nvPromptTemplate = `[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]\n키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 애드포스트 수익 전략 (필수 준수):\n\n【1. CTR 클릭률 극대화】\n- 제목: 숫자("3가지", "월 30만원") + 손해/혜택/궁금증 자극 표현 필수\n- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)\n- 각 소제목도 클릭욕구 자극하는 표현 사용\n\n【2. 황금 키워드 + 고단가 키워드 필수 포함】\n- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치\n- 카테고리 "${nvKwCat}"와 직접 관련된 고단가 키워드만 자연스럽게 포함 (글 주제와 무관한 키워드 강제 삽입 금지)\n- 카테고리 "${nvKwCat}" 관련 고단가 키워드를 소제목 또는 문단에 배치\n- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용\n\n【3. 이슈성 + 정보성 결합】\n- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)\n- 중반부: 구체적 수치/조건/절차/혜택 정보\n- 후반부: 독자 행동 유도(신청, 비교, 확인 등)\n\n【4. 체류시간 극대화】\n- 소제목 6개 이상 (각각 독립적 정보 단위)\n- FAQ 5개 이상 (실제 검색 의도와 일치)\n- 단계별 설명 또는 비교 목록 포함\n- 관련 카테고리 키워드로 추가 읽을거리 유도\n\n【5. 경험 자연스럽게 녹이기】\n- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입\n- ${expGuide}\n- 경험 직후 바로 관련 팁/정보로 연결\n\n【6. AI냄새 제거 — 사람이 쓴 글처럼】\n- 경험 주체를 매번 다르게 쓸 것 (친구/동료/동생/지인/사촌 등 글 전체에서 각 1회만 등장, 반복 금지)\n- 경험담은 글 주제에 맞는 구체적 디테일 필수 (금액·시간·횟수·결과 등 수치 포함, 주제와 무관한 상황 묘사 금지)\n- 소제목은 반드시 궁금증/긴장감 유발 표현으로 (단순 설명형 절대 금지)\n  금지: "예매 전 준비사항", "신청 방법 안내"\n  권장: "이것만 몰랐어도 30만원 날릴 뻔한 실수", "다들 모르고 지나치는 숨은 혜택"\n- 각 문단은 새로운 정보만 담을 것 (앞 내용 반복·요약 금지)\n- 아래 표현은 절대 사용 금지 (AI 클리셰)\n  "이슈 트렌드", "알뜰한 재테크의 일환", "함께 알아보았습니다", "진심으로 응원", "오늘도 유익한 정보", "도움이 되셨나요"\n- 문장을 과도하게 정중하거나 격식체로 끝내지 말 것 (구어체·블로그체 유지)\n- URL은 반드시 한 줄 완성 형태로 (줄바꿈·공백 삽입 금지)\n- 태그는 글 내용과 직접 관련된 것만 (소득공제·재테크 등 주제 무관 태그 금지)\n\n기술 규칙:\n- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심\n- 표(table) 절대 금지\n- 단락 사이 빈 줄 필수\n- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)\n- 순수 텍스트 + 이모지만 사용\n\n형식:\n첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]\n도입부 3줄: 공감 + 이슈 + 해결 암시\n소제목 6개+: 이모지 + 자극적이고 정보적인 소제목\n각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입\n마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가\n\n★ 이미지 배치 규칙 (매우 중요, 절대 몰아서 넣지 말 것):\n- [이미지1 삽입 위치 - 설명]: 도입부 또는 첫 소제목 바로 뒤\n- [이미지2 삽입 위치 - 설명]: 두/세번째 소제목 뒤\n- [이미지3 삽입 위치 - 설명]: 중반부 소제목 뒤\n- [이미지4 삽입 위치 - 설명]: 후반부 소제목 뒤\n- [이미지5 삽입 위치 - 설명]: 마무리 직전 (해당하는 이미지 수 만큼만)\n- 반드시 각 소제목 사이사이에 분산 배치, 마지막에 몰아서 넣기 절대 금지\n\n태그 20개 맨 아래 (# 없이 줄바꿈)\nHTML 태그 없이 순수 텍스트${nvMemo}${nvOp}${nvCtx}\n역할: 대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`;
 
-    const nvText = await geminiAsk(nvPromptTemplate, 5500, 'gemini-3.1-flash-preview');
+    const nvText = await geminiAsk(nvPromptTemplate, 5500, 'gemini-3-flash-preview');
     if(!nvText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
     let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
     cleanNvText = cleanNvText.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>p.replace(/([.?!])\s*(?=[^\n])/g,'$1\n')).join('\n\n');
@@ -906,9 +906,9 @@ async function generateNaver(){
       : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
     const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${styleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지)\n5. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n6. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
     
-    let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-3.1-flash-lite-preview');
+    let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-3-flash-preview');
     if(!promptRaw || promptRaw.length < 50){
-      promptRaw = await geminiAsk(imgPromptQ, 3500, 'gemini-3.1-flash-lite-preview');
+      promptRaw = await geminiAsk(imgPromptQ, 3500, 'gemini-3-flash-preview');
     }
 
     let allPrompts=[];
@@ -1051,7 +1051,7 @@ async function generateTistory(){
       if(tsRawUrls.length){
         try{
           const judgeQ=`다음 URL 목록에서 "${fTsKw}" 관련 공식 예매/신청/정보 사이트 URL만 골라주세요.\n\n[포함기준] 공식 예매처, 티켓 플랫폼, 정부/공공기관 신청 페이지, 공식 브랜드 사이트\n[제외기준] 블로그, 뉴스기사, 커뮤니티, SNS, 유튜브\n\n[URL 목록]\n${tsRawUrls.join('\n')}\n\nJSON 배열만 반환 (없으면 빈 배열): ["url1","url2",...]`;
-          const judgeRes=await geminiAsk(judgeQ,500,'gemini-3.1-flash-lite-preview');
+          const judgeRes=await geminiAsk(judgeQ,500,'gemini-3-flash-preview');
           const matched=(judgeRes||'').replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);
           const picked=JSON.parse(matched?matched[0]:'[]');
           const validPicked=isLocal ? await checkUrls(picked.filter(u=>typeof u==='string'&&u.startsWith('http'))) : picked.filter(u=>typeof u==='string'&&u.startsWith('http'));
@@ -1065,7 +1065,7 @@ async function generateTistory(){
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
       const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함`;
-      tsOutline=await geminiAsk(outlineQ,1200,'gemini-3.1-flash-preview')||'';
+      tsOutline=await geminiAsk(outlineQ,1200,'gemini-3-flash-preview')||'';
     }
 
     const tsCtx=(tsOutline||tsNews5||tsDeep)?`\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(tsOutline||tsNews5||tsDeep).slice(0,2000)}${tsVerifiedLinks}\n★ 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━`:'';
@@ -1076,7 +1076,7 @@ async function generateTistory(){
       setProg(18,'💭 의견 보완 중...');
       try{
         const opCtx=tsDeep?`\n관련정보:\n${tsDeep.slice(0,400)}`:'';
-        augOpinionTs=await geminiAsk(`블로거 의견: "${opinionTs}"\n키워드: ${fTsKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,500,'gemini-3.1-flash-preview')||opinionTs;
+        augOpinionTs=await geminiAsk(`블로거 의견: "${opinionTs}"\n키워드: ${fTsKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,500,'gemini-3-flash-preview')||opinionTs;
       }catch(e){augOpinionTs=opinionTs;}
     }
 
@@ -1090,7 +1090,7 @@ async function generateTistory(){
 ? `[티스토리 블로그 — 구글 애드센스 승인용 고품질 글]\n키워드: "${fTsKw}" | 카테고리: ${tsKwCat} | 목표: 2000자+ | 이미지: ${imgCount}개\n\n★ 승인 심사관이 보는 기준 (E-E-A-T):\n구글 심사관은 "이 블로그가 없어지면 인터넷이 아쉬울까?"를 봅니다.\n따라서 아래 규칙을 반드시 준수하세요.\n\n【글쓰기 핵심 규칙】\n- 반드시 완전한 HTML 코드로 작성 (body 내용만)\n- <h1> 절대 사용 금지 (티스토리 글제목이 자동으로 h1)\n- <h2> 소제목 5개 이상\n- <p> 단락은 2~4문장으로 길이를 불규칙하게 (짧은 것, 긴 것 섞기)\n- <strong> 문단당 1개 이내\n- 표(table) 금지\n\n【AI 냄새 제거 규칙 — 핵심】\n- 문장 시작을 다양하게: "~합니다" 연속 3번 이상 금지\n- 소제목마다 동일한 문장 구조 금지 (다양한 표현 사용)\n- "먼저", "다음으로", "마지막으로" 순서 나열 패턴 금지\n- "~에 대해 알아보겠습니다" 같은 AI 전형 문구 금지\n- 숫자 나열("첫째, 둘째, 셋째") 패턴 최소화\n\n【1인칭 경험 중심 작성】\n- 블로거 본인이 직접 경험한 것처럼 작성\n- 글 전체에 1인칭("저는", "제가", "저도") 자연스럽게 분산\n- 구체적 디테일 포함: 날짜/계절/날씨/소요시간/가격/느낌\n- 예: "지난 10월 주말에 다녀왔는데 날씨가 선선해서 걷기 딱 좋았어요"\n\n【문장 다양성 규칙】\n- 구어체("~거든요", "~더라고요", "~잖아요")와 문어체 혼용\n- 독자에게 말 건네는 표현 중간중간 삽입 ("혹시 아셨나요?", "저만 몰랐던 건지...")\n- 감탄사/반응 포함 ("진짜 대박이었어요", "솔직히 기대 안 했는데")\n\n【구조】\n첫 번째 <p>: 100~120자 이내 핵심 요약 + 키워드 포함 (메타디스크립션 자동 적용)\n본문: <h2> 소제목별 3~5문단, 경험담 자연 삽입\n마무리: 독자 공감 + 다음 방문 유도\n\n★ 이미지 배치:\n<!-- 이미지1 --> 부터 <!-- 이미지${imgCount} --> 주석으로 소제목 사이사이 분산 배치\n\n맨 아래에: <!-- TISTORY-TAGS: 태그1,태그2,...태그20 -->\n\n역할: 10년 경력 여행/생활 블로거 ${nick}. 직접 다녀온 경험을 솔직하게 쓰는 사람.${tsMemo}${tsOp}${tsCtx}`
 : `[티스토리 블로그 — HTML 형식 SEO 최적화]\n키워드: "${fTsKw}" | 카테고리: ${tsKwCat} | 목표: ${tsChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 티스토리 HTML 규칙 (필수):\n- 반드시 완전한 HTML 코드로 작성 (body 내용만, html/head 태그 불필요)\n- <h1> 절대 사용 금지 (티스토리 글제목이 자동으로 h1)\n- <h2> 소제목 6개 이상 (SEO 키워드 포함)\n- <h3> 부제목 활용\n- <p> 단락 (2~3문장)\n- <ul><li> 목록 활용\n- <strong> 문단당 1~2개 이내로 중요 키워드만 강조\n- <br><br> 단락 사이 간격\n- 표(table) 금지\n- 이모지 적극 활용\n\n★ SEO 전략:\n- 첫 번째 <p>: 100~120자 이내 핵심 키워드 "${fTsKw}" 포함 요약문 (메타디스크립션 자동 적용)\n- 첫 <h2>에 키워드 "${fTsKw}" 포함\n- 본문 전체에 키워드 자연스럽게 반복 배치\n- FAQ <h2> 섹션 5개 이상 포함\n- 카테고리 "${tsKwCat}" 관련 고단가 키워드 포함\n\n★ 경험 자연스럽게 녹이기:\n- ${expGuide}\n\n【AI냄새 제거 — 사람이 쓴 글처럼】\n- 경험 주체를 매번 다르게 쓸 것 (친구/동료/동생/지인/사촌 등 글 전체에서 각 1회만 등장, 반복 금지)\n- 경험담은 글 주제에 맞는 구체적 디테일 필수 (금액·시간·횟수·결과 등 수치 포함, 주제와 무관한 상황 묘사 금지)\n- 소제목은 반드시 궁금증/긴장감 유발 표현으로 (단순 설명형 절대 금지)\n  금지: "예매 전 준비사항", "신청 방법 안내"\n  권장: "이것만 몰랐어도 30만원 날릴 뻔한 실수", "다들 모르고 지나치는 숨은 혜택"\n- 각 문단은 새로운 정보만 담을 것 (앞 내용 반복·요약 금지)\n- 아래 표현은 절대 사용 금지 (AI 클리셰)\n  "이슈 트렌드", "알뜰한 재테크의 일환", "함께 알아보았습니다", "진심으로 응원", "오늘도 유익한 정보", "도움이 되셨나요"\n- 문장을 과도하게 정중하거나 격식체로 끝내지 말 것 (구어체·블로그체 유지)\n- URL은 반드시 한 줄 완성 형태로 (줄바꿈·공백 삽입 금지)\n- 태그는 글 내용과 직접 관련된 것만 (소득공제·재테크 등 주제 무관 태그 금지)\n\n★ 이미지 배치:\n- <!-- 이미지1 --> 부터 <!-- 이미지${imgCount} --> 주석으로 각 이미지 위치 표시\n- 소제목 사이사이에 분산 배치\n\n맨 아래에: <!-- TISTORY-TAGS: 태그1,태그2,...태그20 -->\n역할: 대한민국 최고 티스토리 SEO 전문가이자 수익형 블로거 ${nick}. 카테고리: ${tsKwCat}.${tsMemo}${tsOp}${tsCtx}`;
 
-    const tsText=await geminiAsk(tsPromptTemplate,5500,'gemini-3.1-flash-preview');
+    const tsText=await geminiAsk(tsPromptTemplate,5500,'gemini-3-flash-preview');
     if(!tsText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
 
     gd.ts=tsText;
@@ -1114,8 +1114,8 @@ async function generateTistory(){
       : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
     const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${tsStyleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
 
-    let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-3.1-flash-lite-preview');
-    if(!tsPromptRaw||tsPromptRaw.length<50) tsPromptRaw=await geminiAsk(tsImgPromptQ,3500,'gemini-3.1-flash-lite-preview');
+    let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-3-flash-preview');
+    if(!tsPromptRaw||tsPromptRaw.length<50) tsPromptRaw=await geminiAsk(tsImgPromptQ,3500,'gemini-3-flash-preview');
 
     let tsAllPrompts=[];
     try{
@@ -1342,7 +1342,7 @@ async function doFix(){
   btn.disabled=true;btn.textContent='⏳ 수정 중...';
   document.getElementById('fixResultArea').style.display='none';
   try{
-    const result=await geminiAsk(`다음 ${fixTarget==='nv'?'네이버 블로그 텍스트':'티스토리 HTML'} 글을 아래 요청에 따라 수정해주세요.\n\n[수정 요청]\n${req}\n\n[현재 글]\n${content}\n\n수정된 글 전체만 반환. 설명 없이.`, 5500, 'gemini-3.1-flash-preview'); // Text generation
+    const result=await geminiAsk(`다음 ${fixTarget==='nv'?'네이버 블로그 텍스트':'티스토리 HTML'} 글을 아래 요청에 따라 수정해주세요.\n\n[수정 요청]\n${req}\n\n[현재 글]\n${content}\n\n수정된 글 전체만 반환. 설명 없이.`, 5500, 'gemini-3-flash-preview'); // Text generation
     document.getElementById('fixResult').textContent=result;
     document.getElementById('fixResultArea').style.display='block';
     toast('✅ 수정 완료! 확인 후 반영하기 눌러주세요');
