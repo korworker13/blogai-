@@ -723,7 +723,7 @@ async function fetchKw(){
     }else{
       prompt = isTravelCat
         ? '"'+cat+'" 2026년 검색량 높은 롱테일 키워드 10개.'+newsSection+excludeList+'\nJSON 배열만: ["키워드1",...,"키워드10"]'
-        : '"'+cat+'" 애드포스트 수익 유리한 롱테일 키워드 10개. 고단가(대출/보험/카드/재테크/지원금) 우선.'+newsSection+excludeList+'\nJSON 배열만: ["키워드1",...,"키워드10"]';
+        : '"'+cat+'" 애드센스 수익 유리한 롱테일 키워드 10개. 조건: ①신청/조회/바로가기/계산/자격확인 등 행동유도 키워드 최우선 ②지원금/복지/정책/재테크/카드 고단가 우선 ③대출/보험 단어는 절대 포함하지 말 것 ④실제 검색되는 것만.'+newsSection+excludeList+'\nJSON 배열만: ["키워드1",...,"키워드10"]';
     }
 
     const t=await geminiAsk(prompt,500,'gemini-3.1-flash-lite-preview');
