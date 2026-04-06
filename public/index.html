@@ -1320,27 +1320,54 @@ async function generateGeminiImage(uid) {
     try { data = JSON.parse(rawText); }
     catch(pe) { toast('❌ Gemini 서버 오류: 서버를 재시작해 주세요 (응답이 HTML)'); btn.disabled=false; btn.textContent='🎨 Gemini로 이미지 생성'; return; }
     if (data.imageData) {
-      const mtype = data.mimeType || 'image/png';
+      const mtype = data.mimeType || 'image/jpeg';
       const src = 'data:' + mtype + ';base64,' + data.imageData;
       imgEl.src = src;
       imgEl.style.display = 'block';
       dlBtn.classList.add('on');
-      dlBtn.onclick = function() {
-        const a = document.createElement('a');
-        a.href = src;
-        a.download = p.filename || 'gemini-image.png';
-        a.click();
-        toast('💾 이미지 다운로드!');
-      };
-      if (isLocal) {
+
+      // Blob 방식 다운로드 함수 (data URI 방식은 대용량에서 실패함)
+      const triggerDownload = () => {
         try {
-          await fetch('/api/save-image', {
+          const byteChars = atob(data.imageData);
+          const byteArr = new Uint8Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+          const blob = new Blob([byteArr], {type: mtype});
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = p.filename || 'gemini-image.jpg';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+          toast('💾 이미지 다운로드!');
+        } catch(de) { toast('❌ 다운로드 실패: ' + de.message); }
+      };
+
+      dlBtn.onclick = triggerDownload;
+
+      if (isLocal) {
+        // 서버 저장 시도
+        try {
+          const saveRes = await fetch('/api/save-image', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({imageData: data.imageData, mimeType: mtype, filename: p.filename})
           });
-          toast('✅ 이미지 생성 + 바탕화면 저장 완료!');
-        } catch(se) { toast('✅ 이미지 생성 완료! (저장 실패: ' + se.message + ')'); }
+          const saveData = await saveRes.json();
+          if (saveData.success) {
+            toast('✅ 이미지 생성 + 바탕화면 저장 완료!');
+          } else {
+            // 서버 저장 실패 시 브라우저 다운로드로 대체
+            triggerDownload();
+            toast('✅ 이미지 생성 완료! (브라우저 다운로드로 저장)');
+          }
+        } catch(se) {
+          // 서버 저장 오류 시 브라우저 다운로드로 대체
+          triggerDownload();
+          toast('✅ 이미지 생성 완료! (브라우저 다운로드로 저장)');
+        }
       } else {
         toast('✅ 이미지 생성 완료! 다운로드 버튼을 눌러주세요');
       }
@@ -1387,13 +1414,20 @@ async function generateAllGeminiImages(target) {
     } catch(e) { fail++; }
   }
   if (allBtn) { allBtn.disabled = false; allBtn.textContent = '🎨 Gemini로 전체 이미지 한번에 생성'; }
-  // 로컬이면 서버 저장, Vercel이면 ZIP 다운로드
-  if (!isLocal && generatedImgs.length > 0) {
+
+  // 생성된 이미지가 있으면 항상 ZIP 브라우저 다운로드 (로컬/Vercel 공통)
+  if (generatedImgs.length > 0) {
     try {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      document.head.appendChild(script);
-      await new Promise(res => script.onload = res);
+      // JSZip 로드 (이미 로드됐으면 재사용)
+      if (typeof JSZip === 'undefined') {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
       const zip = new JSZip();
       generatedImgs.forEach(img => {
         const base64 = img.src.split(',')[1];
@@ -1403,11 +1437,15 @@ async function generateAllGeminiImages(target) {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `blog-images-${target||'all'}-` + new Date().toISOString().slice(0,10) + '.zip';
+      document.body.appendChild(a);
       a.click();
-      toast('✅ 완료! 성공: ' + success + '개 — ZIP으로 다운로드됨');
-    } catch(ze) { toast('✅ 완료! 성공: ' + success + '개 / 실패: ' + fail + '개'); }
+      document.body.removeChild(a);
+      toast('✅ 완료! 성공 ' + success + '개 — ZIP 다운로드 시작' + (fail > 0 ? ' / 실패 ' + fail + '개' : ''));
+    } catch(ze) {
+      toast('✅ 완료! 성공 ' + success + '개' + (fail > 0 ? ' / 실패 ' + fail + '개' : '') + (isLocal ? ' (바탕화면 저장됨)' : ''));
+    }
   } else {
-    toast('✅ 완료! 성공: ' + success + '개 / 실패: ' + fail + '개' + (isLocal ? ' (바탕화면 저장됨)' : ''));
+    toast('⚠ 생성된 이미지 없음. 실패: ' + fail + '개');
   }
 }
 
