@@ -66,6 +66,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .chip:hover,.chip.sel{border-color:var(--tl);color:var(--tl);background:rgba(14,165,233,.09)}
 .chip-hot::before{content:'🔥 '}
 .chip-hot{border-color:rgba(245,158,11,.35)!important;color:var(--am)!important;background:rgba(245,158,11,.07)!important}
+.chip-gold::before{content:'👑 '}
+.chip-gold{border-color:rgba(255,215,0,.6)!important;color:#ffd700!important;background:rgba(255,215,0,.1)!important;font-weight:700!important;box-shadow:0 0 6px rgba(255,215,0,.25)}
 .btn-gen{display:block;width:100%;padding:13px;border-radius:var(--r);border:none;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 4px 20px rgba(79,142,247,.28);transition:all .2s;margin-top:2px}
 .btn-gen:hover{transform:translateY(-1px)}
 .btn-gen:disabled{opacity:.4;transform:none;cursor:not-allowed}
@@ -666,6 +668,48 @@ async function geminiSearch(query){
 }
 
 
+async function datalabScores(keywords) {
+  const nid = document.getElementById('naverClientId').value.trim();
+  const nsc = document.getElementById('naverClientSecret').value.trim();
+  if (!nid || !nsc || !keywords.length) return {};
+  try {
+    const r = await fetch('/api/naver-datalab', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ clientId: nid, clientSecret: nsc, keywords })
+    });
+    const d = await r.json();
+    return d.scores || {};
+  } catch(e) { return {}; }
+}
+
+function renderKeywordChips(containerEl, kws, scores, targetInputId, isNaver) {
+  containerEl.innerHTML = '';
+  // 점수 기준 정렬 (높은 순)
+  const sorted = [...kws].sort((a, b) => {
+    const sa = scores[a] ? scores[a].max : -1;
+    const sb = scores[b] ? scores[b].max : -1;
+    return sb - sa;
+  });
+  sorted.forEach(k => {
+    const el = document.createElement('span');
+    const sc = scores[k];
+    const isGold = sc && sc.max >= 60;
+    const isHot = sc && sc.max >= 30 && sc.max < 60;
+    const hasScore = sc && sc.max > 0;
+    el.className = 'chip' + (isGold ? ' chip-gold' : (isNaver || isHot) ? ' chip-hot' : '');
+    el.title = hasScore ? `최고 ${sc.max} / 평균 ${sc.avg} (DataLab 7일)` : 'DataLab 데이터 없음';
+    el.textContent = k + (hasScore ? ` (${sc.max})` : '');
+    el.onclick = () => {
+      document.getElementById(targetInputId).value = k;
+      containerEl.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+      el.classList.add('sel');
+      toast((isGold ? '👑 황금키워드 선택: ' : '✔ ') + k);
+    };
+    containerEl.appendChild(el);
+  });
+}
+
 async function checkUrls(urls) {
   try {
     const res = await fetch('/api/check-url', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls})});
@@ -733,8 +777,15 @@ async function fetchKw(){
     if(!Array.isArray(kws)||!kws.length){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ 키워드 파싱 실패. 다시 시도해주세요</span>';return;}
     if(!previousTsKeywords[cat])previousTsKeywords[cat]=[];
     previousTsKeywords[cat]=[...new Set([...previousTsKeywords[cat],...kws])].slice(0,15);
-    chips.innerHTML='';
-    kws.forEach(k=>{const el=document.createElement('span');el.className='chip';el.textContent=k;el.onclick=()=>{document.getElementById('tsKw').value=k;document.querySelectorAll('#tsChips .chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');toast('✔ '+k);};chips.appendChild(el);});
+    // DataLab 검색량 검증
+    chips.innerHTML='<span style="font-size:12px;color:var(--tx3)">📊 DataLab 검색량 확인 중...</span>';
+    const scores = await datalabScores(kws);
+    const hasScores = Object.keys(scores).length > 0;
+    renderKeywordChips(chips, kws, scores, 'tsKw', false);
+    if(hasScores){
+      const goldCount = kws.filter(k=>scores[k]&&scores[k].max>=60).length;
+      toast(goldCount>0 ? `👑 황금키워드 ${goldCount}개 발견!` : '📊 DataLab 검색량 확인 완료');
+    }
   }catch(e){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">오류: '+e.message+'</span>';}
   finally{btn.textContent='✦ 추천';btn.disabled=false;}
 }
@@ -792,9 +843,17 @@ async function fetchHot(){
     try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
     if(!Array.isArray(kws)||!kws.length){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ 키워드 파싱 실패. 다시 시도해주세요</span>';return;}
     previousNvKeywords=[...new Set([...previousNvKeywords,...kws])].slice(0,20);
-    chips.innerHTML='';
-    kws.forEach(k=>{const el=document.createElement('span');el.className='chip chip-hot';el.textContent=k;el.onclick=()=>{document.getElementById('nvKw').value=k;document.querySelectorAll('#nvChips .chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');toast('🔥 선택: '+k);};chips.appendChild(el);});
-    toast('🔥 핫 키워드 '+kws.length+'개 선별 완료!');
+    // DataLab 검색량 검증
+    chips.innerHTML='<span style="font-size:12px;color:var(--tx3)">📊 DataLab 검색량 확인 중...</span>';
+    const scores = await datalabScores(kws);
+    const hasScores = Object.keys(scores).length > 0;
+    renderKeywordChips(chips, kws, scores, 'nvKw', true);
+    if(hasScores){
+      const goldCount = kws.filter(k=>scores[k]&&scores[k].max>=60).length;
+      toast(goldCount>0 ? `👑 황금키워드 ${goldCount}개 발견! 🔥 핫 키워드 ${kws.length}개 선별 완료` : `🔥 핫 키워드 ${kws.length}개 선별 완료`);
+    } else {
+      toast('🔥 핫 키워드 '+kws.length+'개 선별 완료!');
+    }
   }catch(e){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">오류: '+e.message+'</span>';}
   finally{btn.textContent='🔥 3일 이내 핫 키워드 자동 선별';btn.disabled=false;}
 }
@@ -1315,6 +1374,13 @@ async function generateAllGeminiImages(target) {
       const p = allPromptData[uid];
       if (imgEl && imgEl.src && imgEl.src.startsWith('data:')) {
         generatedImgs.push({ src: imgEl.src, filename: p.filename || uid + '.png' });
+      } else {
+        // 이미지 생성 실패 시 15초 후 1회 재시도
+        await new Promise(res => setTimeout(res, 15000));
+        await generateGeminiImage(uid);
+        if (imgEl && imgEl.src && imgEl.src.startsWith('data:')) {
+          generatedImgs.push({ src: imgEl.src, filename: p.filename || uid + '.png' });
+        }
       }
       success++;
       await new Promise(res => setTimeout(res, 3000));

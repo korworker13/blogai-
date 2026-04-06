@@ -64,6 +64,58 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 네이버 DataLab 검색어 트렌드 API
+  if (req.method === 'POST' && req.url === '/api/naver-datalab') {
+    const { clientId, clientSecret, keywords } = await readBody(req);
+    const id = clientId || process.env.NAVER_CLIENT_ID;
+    const secret = clientSecret || process.env.NAVER_CLIENT_SECRET;
+    if (!id || !secret) { res.writeHead(400); res.end(JSON.stringify({ error: '네이버 API 키 없음' })); return; }
+    if (!Array.isArray(keywords) || !keywords.length) { res.writeHead(400); res.end(JSON.stringify({ error: '키워드 없음' })); return; }
+
+    // DataLab은 한 번에 최대 5개 그룹 → 5개씩 나눠서 호출
+    const today = new Date();
+    const endDate = today.toISOString().slice(0, 10);
+    const startDate = new Date(today - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const chunks = [];
+    for (let i = 0; i < keywords.length; i += 5) chunks.push(keywords.slice(i, i + 5));
+
+    try {
+      const scores = {};
+      for (const chunk of chunks) {
+        const body = JSON.stringify({
+          startDate, endDate, timeUnit: 'date',
+          keywordGroups: chunk.map(k => ({ groupName: k, keywords: [k] }))
+        });
+        const options = {
+          hostname: 'openapi.naver.com', port: 443,
+          path: '/v1/datalab/search',
+          method: 'POST',
+          headers: { 'X-Naver-Client-Id': id, 'X-Naver-Client-Secret': secret, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        };
+        const result = await new Promise((resolve, reject) => {
+          const r = https.request(options, (resp) => {
+            let data = ''; resp.on('data', c => data += c);
+            resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
+          });
+          r.on('error', reject); r.write(body); r.end();
+        });
+        if (result.results) {
+          result.results.forEach(item => {
+            // ratio 배열의 평균값을 점수로 사용
+            const ratios = item.data ? item.data.map(d => d.ratio) : [];
+            const avg = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : 0;
+            const max = ratios.length ? Math.max(...ratios) : 0;
+            scores[item.title] = { avg: Math.round(avg * 10) / 10, max: Math.round(max * 10) / 10 };
+          });
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ scores }));
+    } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
+    return;
+  }
+
   // Tavily API
   if (req.method === 'POST' && req.url === '/api/tavily') {
     const { apiKey, query } = await readBody(req);
