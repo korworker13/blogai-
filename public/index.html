@@ -968,25 +968,26 @@ async function generateNaver(){
 
     const nvText = await geminiAsk(nvPromptTemplate, 25000, 'gemini-3.1-flash-lite-preview');
     if(!nvText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
-    let cleanNvText = nvText.replace(/^#+\s/gm, '').replace(/^\s*[-*]\s/gm, '').replace(/\*\*/g, '').replace(/\uFFFD/g, '').trim();
-    // 버그1: "1.\n소제목" → "1. 소제목" (숫자와 소제목 텍스트 분리 복원)
-    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n+\s*(.+)/gm, '$1. $2');
-    // 버그2: URL 여러 줄 끊김 이어붙이기
+    let cleanNvText = nvText
+      // Step1: 마크다운 제거
+      .replace(/^#+\s/gm, '')
+      .replace(/^\s*[-*]\s/gm, '')
+      .replace(/\*\*/g, '')
+      .replace(/\uFFFD/g, '')
+      .trim();
+    // Step2: URL 줄바꿈 이어붙이기 (단락분리 전에 먼저)
     cleanNvText = cleanNvText.replace(
-      /(https?:\/\/)([^\s]*?)(\s*\n\s*)([a-zA-Z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+)/g,
-      (m, proto, part1, br, part2) => {
-        if (!/[가-힣]/.test(part2) && part2.length < 100) return proto + part1 + part2;
-        return m;
+      /(https?:\/\/)([\s\S]*?)(?=\n\n|\n[가-힣]|$)/g,
+      (m, proto, rest) => {
+        const joined = proto + rest.replace(/\s*\n\s*/g, '');
+        return joined.replace(/(https?:\/\/[^\s가-힣\n]+)/g, u => u.replace(/\s+/g, ''));
       }
     );
-    // 마침표로 끝난 URL 조각 이어붙이기: "www.\nahnlab.\ncom" 패턴
-    cleanNvText = cleanNvText.replace(
-      /([a-zA-Z0-9\-]+\.)(\s*\n\s*)([a-zA-Z0-9\-]+)/g,
-      (m, p1, br, p2) => {
-        if (!/[가-힣]/.test(p2) && p2.length < 50) return p1 + p2;
-        return m;
-      }
-    );
+    // Step3: 숫자 소제목 이어붙이기 ("1.\n\n소제목" 빈줄 여러개도 처리)
+    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*[\n]+\s*([^\n]+)/gm, '$1. $2');
+    // Step4: FAQ Q/A 줄바꿈 이어붙이기
+    cleanNvText = cleanNvText.replace(/^(Q|A)\s*:\s*\n+\s*([^\n]+)/gm, '$1: $2');
+    // Step5: 단락 분리 (마지막에)
     cleanNvText = cleanNvText.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>p.replace(/([.?!])\s*(?=[^\n])/g,'$1\n')).join('\n\n');
     gd.nv = cleanNvText;
     document.getElementById('nvOut').textContent=cleanNvText;
@@ -1385,7 +1386,7 @@ async function generateGeminiImage(uid) {
           const saveRes = await fetch('/api/save-image', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({imageData: data.imageData, mimeType: mtype, filename: p.filename})
+            body: JSON.stringify({imageData: data.imageData, mimeType: mtype, filename: p.filename, keyword: document.getElementById('tsKw').value.trim() || document.getElementById('nvKw').value.trim() || '블로그글'})
           });
           const saveData = await saveRes.json();
           if (saveData.success) {
@@ -1447,38 +1448,54 @@ async function generateAllGeminiImages(target) {
   }
   if (allBtn) { allBtn.disabled = false; allBtn.textContent = '🎨 Gemini로 전체 이미지 한번에 생성'; }
 
-  // 생성된 이미지가 있으면 항상 ZIP 브라우저 다운로드 (로컬/Vercel 공통)
   if (generatedImgs.length > 0) {
-    try {
-      // JSZip 로드 (이미 로드됐으면 재사용)
-      if (typeof JSZip === 'undefined') {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
+    const kw = document.getElementById('tsKw').value.trim() || document.getElementById('nvKw').value.trim() || '블로그글';
+    if (isLocal) {
+      try {
+        const saveRes = await fetch('/api/save-image-bulk', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ images: generatedImgs, keyword: kw })
         });
+        const saveData = await saveRes.json();
+        if (saveData.success) {
+          toast('✅ 완료! ' + success + '개 → ' + saveData.path + ' 저장됨' + (fail > 0 ? ' / 실패 ' + fail + '개' : ''));
+        } else {
+          await downloadAsZip(generatedImgs, target);
+        }
+      } catch(e) {
+        await downloadAsZip(generatedImgs, target);
       }
-      const zip = new JSZip();
-      generatedImgs.forEach(img => {
-        const base64 = img.src.split(',')[1];
-        zip.file(img.filename, base64, {base64: true});
-      });
-      const blob = await zip.generateAsync({type:'blob'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `blog-images-${target||'all'}-` + new Date().toISOString().slice(0,10) + '.zip';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast('✅ 완료! 성공 ' + success + '개 — ZIP 다운로드 시작' + (fail > 0 ? ' / 실패 ' + fail + '개' : ''));
-    } catch(ze) {
-      toast('✅ 완료! 성공 ' + success + '개' + (fail > 0 ? ' / 실패 ' + fail + '개' : '') + (isLocal ? ' (바탕화면 저장됨)' : ''));
+    } else {
+      await downloadAsZip(generatedImgs, target);
     }
   } else {
     toast('⚠ 생성된 이미지 없음. 실패: ' + fail + '개');
   }
+}
+
+async function downloadAsZip(images, target) {
+  if (typeof JSZip === 'undefined') {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  const zip = new JSZip();
+  images.forEach(img => {
+    const base64 = img.src.split(',')[1];
+    zip.file(img.filename, base64, {base64: true});
+  });
+  const blob = await zip.generateAsync({type:'blob'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `blog-images-${target||'all'}-` + new Date().toISOString().slice(0,10) + '.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 /* ═══ 수정 요청 ═══ */

@@ -229,11 +229,16 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 이미지 파일 저장 API
+  // 이미지 파일 저장 API (개별)
   if (req.method === 'POST' && req.url === '/api/save-image') {
-    const { imageData, mimeType, filename } = await readBody(req);
+    const { imageData, mimeType, filename, keyword } = await readBody(req);
     const today = new Date().toISOString().slice(0, 10);
-    const saveDir = path.join(SAVE_BASE, today, '이미지');
+    const safeKw = (keyword || '블로그글').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 30);
+    let saveDir = path.join(SAVE_BASE, today, safeKw);
+    let cnt = 2;
+    while (fs.existsSync(saveDir) && fs.readdirSync(saveDir).length > 0) {
+      saveDir = path.join(SAVE_BASE, today, `${safeKw} (${cnt})`); cnt++;
+    }
     try {
       ensureDir(saveDir);
       const ext = (mimeType || '').includes('jpeg') ? '.jpg' : '.png';
@@ -246,6 +251,34 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // 이미지 일괄 저장 API (키워드별 폴더)
+  if (req.method === 'POST' && req.url === '/api/save-image-bulk') {
+    const { images, keyword } = await readBody(req);
+    if (!Array.isArray(images) || !images.length) { res.writeHead(400); res.end(JSON.stringify({ error: '이미지 없음' })); return; }
+    const today = new Date().toISOString().slice(0, 10);
+    const safeKw = (keyword || '블로그글').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 30);
+    let finalDir = path.join(SAVE_BASE, today, safeKw);
+    let cnt = 2;
+    while (fs.existsSync(finalDir)) { finalDir = path.join(SAVE_BASE, today, `${safeKw} (${cnt})`); cnt++; }
+    try {
+      ensureDir(finalDir);
+      const saved = [];
+      for (const img of images) {
+        const base64 = img.src.split(',')[1];
+        const buf = Buffer.from(base64, 'base64');
+        const filePath = path.join(finalDir, img.filename);
+        fs.writeFileSync(filePath, buf);
+        saved.push(img.filename);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, path: finalDir, saved }));
+    } catch (e) {
+      res.writeHead(500);
+      res.end(JSON.stringify({ success: false, error: e.message }));
     }
     return;
   }
