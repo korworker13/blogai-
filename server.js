@@ -118,12 +118,12 @@ const server = http.createServer(async (req, res) => {
 
   // Tavily API
   if (req.method === 'POST' && req.url === '/api/tavily') {
-    const { apiKey, query } = await readBody(req);
+    const { apiKey, query, days } = await readBody(req);
     const key = apiKey || process.env.TAVILY_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Tavily 키 없음' })); return; }
     try {
       const result = await httpsPost('api.tavily.com', '/search', {},
-        JSON.stringify({ api_key: key, query, search_depth: 'advanced', max_results: 8, include_answer: true, days: 90 }));
+        JSON.stringify({ api_key: key, query, search_depth: 'advanced', max_results: 8, include_answer: true, days: days || 90 }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
