@@ -123,7 +123,7 @@ const server = http.createServer(async (req, res) => {
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Tavily 키 없음' })); return; }
     try {
       const result = await httpsPost('api.tavily.com', '/search', {},
-        JSON.stringify({ api_key: key, query, search_depth: 'advanced', max_results: 8, include_answer: true, days: 3 }));
+        JSON.stringify({ api_key: key, query, search_depth: 'advanced', max_results: 8, include_answer: true, days: 90 }));
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result));
     } catch(e) { res.writeHead(500); res.end(JSON.stringify({ error: e.message })); }
