@@ -75,8 +75,9 @@ const server = http.createServer(async (req, res) => {
       };
       const result = await new Promise((resolve, reject) => {
         const r = https.request(options, (resp) => {
-          let data = ''; resp.on('data', chunk => data += chunk);
-          resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
+          const chunks = [];
+          resp.on('data', chunk => chunks.push(chunk));
+          resp.on('end', () => { try { const data = Buffer.concat(chunks).toString('utf8'); resolve(JSON.parse(data)); } catch(e) { resolve({ error: e.message }); } });
         });
         r.on('error', reject); r.end();
       });
@@ -117,8 +118,9 @@ const server = http.createServer(async (req, res) => {
         };
         const result = await new Promise((resolve, reject) => {
           const r = https.request(options, (resp) => {
-            let data = ''; resp.on('data', c => data += c);
-            resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
+            const chunks = [];
+            resp.on('data', c => chunks.push(c));
+            resp.on('end', () => { try { const data = Buffer.concat(chunks).toString('utf8'); resolve(JSON.parse(data)); } catch(e) { resolve({ error: e.message }); } });
           });
           r.on('error', reject); r.write(body); r.end();
         });
