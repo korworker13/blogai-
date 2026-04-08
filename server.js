@@ -19,14 +19,29 @@ function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
 }
 
+// 날짜 기준 순번 폴더 반환: 2026-04-08 → 2026-04-08(2) → 2026-04-08(3) ...
+function getDateFolder() {
+  const today = new Date().toISOString().slice(0, 10);
+  let dir = path.join(SAVE_BASE, today);
+  if (!fs.existsSync(dir)) return dir;
+  let cnt = 2;
+  while (fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt})`))) cnt++;
+  return path.join(SAVE_BASE, `${today}(${cnt})`);
+}
+
 function httpsPost(hostname, path, headers, postData) {
   return new Promise((resolve, reject) => {
-    const options = { hostname, port: 443, path, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData), ...headers } };
+    const options = {
+      hostname, port: 443, path, method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData), ...headers },
+      timeout: 120000  // ★ 이미지 생성은 최대 2분 대기
+    };
     const r = https.request(options, (resp) => {
       let data = '';
       resp.on('data', chunk => data += chunk);
       resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
     });
+    r.on('timeout', () => { r.destroy(); reject(new Error('요청 타임아웃 (120초 초과)')); });
     r.on('error', reject);
     r.write(postData); r.end();
   });
@@ -229,25 +244,27 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 이미지 파일 저장 API (개별)
+  // 이미지 파일 저장 API (개별) — 날짜 순번 폴더/이미지/ 에 저장
   if (req.method === 'POST' && req.url === '/api/save-image') {
-    const { imageData, mimeType, filename, keyword } = await readBody(req);
+    const { imageData, mimeType, filename } = await readBody(req);
     const today = new Date().toISOString().slice(0, 10);
-    const safeKw = (keyword || '블로그글').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 30);
-    let saveDir = path.join(SAVE_BASE, today, safeKw);
+    // 오늘 날짜 폴더 중 가장 최근 순번 폴더를 찾아서 이미지 폴더에 저장
+    let baseDir = path.join(SAVE_BASE, today);
     let cnt = 2;
-    while (fs.existsSync(saveDir) && fs.readdirSync(saveDir).length > 0) {
-      saveDir = path.join(SAVE_BASE, today, `${safeKw} (${cnt})`); cnt++;
+    while (fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt})`))) cnt++;
+    if (cnt > 2 && fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt - 1})`))) {
+      baseDir = path.join(SAVE_BASE, `${today}(${cnt - 1})`);
+    } else if (!fs.existsSync(baseDir)) {
+      baseDir = getDateFolder();
     }
+    const saveDir = path.join(baseDir, '이미지');
     try {
       ensureDir(saveDir);
       const ext = (mimeType || '').includes('jpeg') ? '.jpg' : '.png';
       const fname = filename || `gemini-image-${Date.now()}${ext}`;
-      const buffer = Buffer.from(imageData, 'base64');
-      const fullPath = path.join(saveDir, fname);
-      fs.writeFileSync(fullPath, buffer);
+      fs.writeFileSync(path.join(saveDir, fname), Buffer.from(imageData, 'base64'));
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, path: fullPath }));
+      res.end(JSON.stringify({ success: true, path: path.join(saveDir, fname) }));
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));
@@ -255,27 +272,35 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 이미지 일괄 저장 API (키워드별 폴더)
+  // 이미지 일괄 저장 API — 날짜 순번 폴더/이미지/ 에 한꺼번에 저장
   if (req.method === 'POST' && req.url === '/api/save-image-bulk') {
-    const { images, keyword } = await readBody(req);
-    if (!Array.isArray(images) || !images.length) { res.writeHead(400); res.end(JSON.stringify({ error: '이미지 없음' })); return; }
+    const { images } = await readBody(req);
+    if (!Array.isArray(images) || !images.length) {
+      res.writeHead(400);
+      res.end(JSON.stringify({ error: '이미지 없음' }));
+      return;
+    }
     const today = new Date().toISOString().slice(0, 10);
-    const safeKw = (keyword || '블로그글').replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 30);
-    let finalDir = path.join(SAVE_BASE, today, safeKw);
+    let baseDir = path.join(SAVE_BASE, today);
     let cnt = 2;
-    while (fs.existsSync(finalDir)) { finalDir = path.join(SAVE_BASE, today, `${safeKw} (${cnt})`); cnt++; }
+    while (fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt})`))) cnt++;
+    if (cnt > 2 && fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt - 1})`))) {
+      baseDir = path.join(SAVE_BASE, `${today}(${cnt - 1})`);
+    } else if (!fs.existsSync(baseDir)) {
+      baseDir = getDateFolder();
+    }
+    const saveDir = path.join(baseDir, '이미지');
     try {
-      ensureDir(finalDir);
+      ensureDir(saveDir);
       const saved = [];
       for (const img of images) {
-        const base64 = img.src.split(',')[1];
-        const buf = Buffer.from(base64, 'base64');
-        const filePath = path.join(finalDir, img.filename);
+        const buf = Buffer.from(img.src.split(',')[1], 'base64');
+        const filePath = path.join(saveDir, img.filename);
         fs.writeFileSync(filePath, buf);
         saved.push(img.filename);
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, path: finalDir, saved }));
+      res.end(JSON.stringify({ success: true, path: saveDir, saved }));
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ success: false, error: e.message }));
@@ -347,8 +372,7 @@ const server = http.createServer(async (req, res) => {
   // ★ 저장 API — 글 + 이미지 프롬프트 파일 저장
   if (req.method === 'POST' && req.url === '/api/save-all') {
     const { nv, ts, nvPrompts, tsPrompts } = await readBody(req);
-    const today = new Date().toISOString().slice(0, 10);
-    const saveDir = path.join(SAVE_BASE, today);
+    const saveDir = getDateFolder();
 
     try {
       ensureDir(saveDir);
