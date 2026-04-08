@@ -294,7 +294,9 @@ const server = http.createServer(async (req, res) => {
       ensureDir(saveDir);
       const saved = [];
       for (const img of images) {
-        const buf = Buffer.from(img.src.split(',')[1], 'base64');
+        const base64 = img.src && img.src.includes(',') ? img.src.split(',')[1] : img.src;
+        if (!base64) { saved.push('SKIP:' + img.filename); continue; }
+        const buf = Buffer.from(base64, 'base64');
         const filePath = path.join(saveDir, img.filename);
         fs.writeFileSync(filePath, buf);
         saved.push(img.filename);

@@ -980,14 +980,14 @@ async function generateNaver(){
       .replace(/\*\*/g, '')
       .replace(/\uFFFD/g, '')
       .trim();
-    // Step2: URL 줄바꿈 이어붙이기 (단락분리 전에 먼저)
-    cleanNvText = cleanNvText.replace(/https?:\/\/[^\s][\s\S]*?(?=\s*(?:\n\n|\n[가-힣]|$))/g, u => u.replace(/\s*\n\s*/g, ''));
+    // Step2: URL 줄바꿈 이어붙이기 (연속 줄바꿈 포함 URL 전체를 한 줄로)
+    cleanNvText = cleanNvText.replace(/https?:\/\/[^\s]*(\s*\n\s*[^\s\n]+)*/g, m => m.replace(/\s*\n\s*/g, ''));
     // Step2-b: 대제목 "제목:" 뒤 줄바꿈 이어붙이기
     cleanNvText = cleanNvText.replace(/^(제목)\s*:\s*\n[\s\n]*([^\n]+)/gm, '$1: $2');
-    // Step3: 숫자 소제목 이어붙이기 ("1.\n\n소제목" — 빈줄 사이 공백까지 처리)
-    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n[\s\n]*([^\n]+)/gm, '$1. $2');
-    // Step4: FAQ Q/A 줄바꿈 이어붙이기
-    cleanNvText = cleanNvText.replace(/^(Q|A)\s*:\s*\n+\s*([^\n]+)/gm, '$1: $2');
+    // Step3: 숫자 소제목 이어붙이기 — 다음 줄이 숫자로 시작하면 소수점(4.5점 등) 오인 차단
+    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n([\s\n]*)([^\n\d])/gm, '$1. $3');
+    // Step4: FAQ Q+숫자 / A 단독 줄바꿈 이어붙이기 (Q1. Q2. A. 모두 처리)
+    cleanNvText = cleanNvText.replace(/^(Q\d*|A)\s*[.:]\s*\n+\s*([^\n]+)/gm, '$1. $2');
     // Step5: 단락 분리 (마지막에)
     cleanNvText = cleanNvText.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).map(p=>p.replace(/([.?!])\s*(?=[^\n])/g,'$1\n')).join('\n\n');
     gd.nv = cleanNvText;
@@ -1439,16 +1439,16 @@ async function generateAllGeminiImages(target) {
   const generatedImgs = [];
 
   for (const uid of keys) {
-    const imgEl = document.getElementById(uid + '-gimg');
     const p = allPromptData[uid];
 
     // 1차 시도
     await generateGeminiImage(uid);
     await new Promise(res => setTimeout(res, 5000)); // ★ 5초 대기 (Rate limit 방지)
 
-    // 성공 여부 체크
-    if (imgEl && imgEl.src && imgEl.src.startsWith('data:')) {
-      generatedImgs.push({ src: imgEl.src, filename: p.filename || uid + '.png' });
+    // ★ imgEl 매번 새로 참조 (클로저 캐싱 방지)
+    const imgElCheck = document.getElementById(uid + '-gimg');
+    if (imgElCheck && imgElCheck.src && imgElCheck.src.startsWith('data:')) {
+      generatedImgs.push({ src: imgElCheck.src, filename: p.filename || uid + '.png' });
       success++;
     } else {
       // ★ 실패 시 20초 후 1회 재시도
@@ -1457,7 +1457,6 @@ async function generateAllGeminiImages(target) {
       await generateGeminiImage(uid);
       await new Promise(res => setTimeout(res, 5000));
 
-      // ★ 재시도 후 체크 (imgEl 다시 참조)
       const imgElRetry = document.getElementById(uid + '-gimg');
       if (imgElRetry && imgElRetry.src && imgElRetry.src.startsWith('data:')) {
         generatedImgs.push({ src: imgElRetry.src, filename: p.filename || uid + '.png' });
@@ -1471,25 +1470,25 @@ async function generateAllGeminiImages(target) {
   if (allBtn) { allBtn.disabled = false; allBtn.textContent = '🎨 Gemini로 전체 이미지 한번에 생성'; }
 
   if (generatedImgs.length > 0) {
-    const kw = document.getElementById('tsKw').value.trim() || document.getElementById('nvKw').value.trim() || '블로그글';
     if (isLocal) {
       try {
         const saveRes = await fetch('/api/save-image-bulk', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ images: generatedImgs, keyword: kw })
+          body: JSON.stringify({ images: generatedImgs })
         });
         const saveData = await saveRes.json();
         if (saveData.success) {
           toast('✅ 완료! ' + success + '개 저장 → ' + saveData.path + (fail > 0 ? ' / 실패 ' + fail + '개' : ''));
         } else {
-          await downloadAsZip(generatedImgs, target);
+          toast('⚠ 폴더 저장 실패. 생성은 완료: ' + success + '개' + (fail > 0 ? ' / 실패 ' + fail + '개' : ''));
         }
       } catch(e) {
-        await downloadAsZip(generatedImgs, target);
+        toast('⚠ 폴더 저장 오류. 생성은 완료: ' + success + '개');
       }
     } else {
       await downloadAsZip(generatedImgs, target);
+      toast('✅ 완료! ' + success + '개 생성' + (fail > 0 ? ' / 실패 ' + fail + '개' : ''));
     }
   } else {
     toast('⚠ 생성된 이미지 없음. 실패: ' + fail + '개');
