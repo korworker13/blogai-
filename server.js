@@ -37,9 +37,16 @@ function httpsPost(hostname, path, headers, postData) {
       timeout: 120000  // ★ 이미지 생성은 최대 2분 대기
     };
     const r = https.request(options, (resp) => {
-      let data = '';
-      resp.on('data', chunk => data += chunk);
-      resp.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ error: data }); } });
+      const chunks = [];
+      resp.on('data', chunk => chunks.push(chunk));          // ★ Buffer 그대로 수집
+      resp.on('end', () => {
+        try {
+          const data = Buffer.concat(chunks).toString('utf8'); // ★ 합친 후 utf8 디코딩
+          resolve(JSON.parse(data));
+        } catch(e) {
+          resolve({ error: chunks.toString() });
+        }
+      });
     });
     r.on('timeout', () => { r.destroy(); reject(new Error('요청 타임아웃 (120초 초과)')); });
     r.on('error', reject);
@@ -274,7 +281,12 @@ const server = http.createServer(async (req, res) => {
 
   // 이미지 일괄 저장 API — 날짜 순번 폴더/이미지/ 에 한꺼번에 저장
   if (req.method === 'POST' && req.url === '/api/save-image-bulk') {
-    const { images } = await readBody(req);
+    const { images, keyword } = await readBody(req);
+    const slugKw = (keyword || '블로그')
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '-')
+      .trim()
+      .slice(0, 30);
     if (!Array.isArray(images) || !images.length) {
       res.writeHead(400);
       res.end(JSON.stringify({ error: '이미지 없음' }));
@@ -293,13 +305,16 @@ const server = http.createServer(async (req, res) => {
     try {
       ensureDir(saveDir);
       const saved = [];
+      let imgIdx = 1;
       for (const img of images) {
         const base64 = img.src && img.src.includes(',') ? img.src.split(',')[1] : img.src;
         if (!base64) { saved.push('SKIP:' + img.filename); continue; }
         const buf = Buffer.from(base64, 'base64');
-        const filePath = path.join(saveDir, img.filename);
-        fs.writeFileSync(filePath, buf);
-        saved.push(img.filename);
+        const ext = (img.filename || '').endsWith('.png') ? '.png' : '.jpg';
+        const newFilename = `${slugKw}-${String(imgIdx).padStart(2, '0')}${ext}`;
+        fs.writeFileSync(path.join(saveDir, newFilename), buf);
+        saved.push(newFilename);
+        imgIdx++;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, path: saveDir, saved }));
@@ -373,8 +388,17 @@ const server = http.createServer(async (req, res) => {
 
   // ★ 저장 API — 글 + 이미지 프롬프트 파일 저장
   if (req.method === 'POST' && req.url === '/api/save-all') {
-    const { nv, ts, nvPrompts, tsPrompts } = await readBody(req);
+    const { nv, ts, nvPrompts, tsPrompts, nvKw, tsKw } = await readBody(req);
     const saveDir = getDateFolder();
+
+    // ★ 키워드 기반 파일명 생성
+    const makeSlug = (kw) => (kw || '블로그글')
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '-')
+      .trim()
+      .slice(0, 40);
+    const nvSlug = makeSlug(nvKw);
+    const tsSlug = makeSlug(tsKw);
 
     try {
       ensureDir(saveDir);
@@ -382,14 +406,16 @@ const server = http.createServer(async (req, res) => {
 
       // 네이버 글 저장
       if (nv) {
-        fs.writeFileSync(path.join(saveDir, '네이버_글.txt'), nv, 'utf8');
-        saved.push('✅ 네이버_글.txt');
+        const nvFile = `${nvSlug}_네이버.txt`;
+        fs.writeFileSync(path.join(saveDir, nvFile), nv, 'utf8');
+        saved.push('✅ ' + nvFile);
       }
 
       // 티스토리 글 저장
       if (ts) {
-        fs.writeFileSync(path.join(saveDir, '티스토리_글.html'), ts, 'utf8');
-        saved.push('✅ 티스토리_글.html');
+        const tsFile = `${tsSlug}_티스토리.html`;
+        fs.writeFileSync(path.join(saveDir, tsFile), ts, 'utf8');
+        saved.push('✅ ' + tsFile);
       }
 
       // 이미지 프롬프트 가이드 저장

@@ -1040,7 +1040,7 @@ async function generateNaver(){
         const saveRes=await fetch('/api/save-all',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({nv:gd.nv, ts:gd.ts, nvPrompts:gd.nvPrompts, tsPrompts:gd.tsPrompts})
+          body:JSON.stringify({nv:gd.nv, ts:gd.ts, nvPrompts:gd.nvPrompts, tsPrompts:gd.tsPrompts, nvKw:fNvKw, tsKw:fTsKw||''})
         });
         const saveData=await saveRes.json();
         if(saveData.folder){
@@ -1244,11 +1244,15 @@ async function generateTistory(){
     gd.tsPrompts=tsAllPrompts.map((p,i)=>({...p,type:'tistory',num:(p.num||i+1)}));
     renderPromptCards('pgrid-ts',gd.tsPrompts,'ts');
 
+    /* ━━ STEP 5-1: Gemini 티스토리 이미지 자동 생성 ━━ */
+    setProg(75, '🎨 티스토리 이미지 자동 생성 중...');
+    await generateAllGeminiImages('ts');
+
     /* 로컬 저장 */
     if(isLocal){
       setProg(88,'💾 저장 중...');
       try{
-        const saveRes=await fetch('/api/save-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nv:gd.nv,ts:gd.ts,nvPrompts:gd.nvPrompts,tsPrompts:gd.tsPrompts})});
+        const saveRes=await fetch('/api/save-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nv:gd.nv,ts:gd.ts,nvPrompts:gd.nvPrompts,tsPrompts:gd.tsPrompts,nvKw:fNvKw||'',tsKw:fTsKw})});
         const saveData=await saveRes.json();
         if(saveData.folder){toast(`🎉 저장 완료! 바탕화면 폴더 열렸어요!`,4000);addLog(`✅ 저장 완료: ${saveData.saved.length}개 파일`,'lok');}
       }catch(e){toast('⚠ 파일 저장 실패: '+e.message);}
@@ -1475,7 +1479,7 @@ async function generateAllGeminiImages(target) {
         const saveRes = await fetch('/api/save-image-bulk', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ images: generatedImgs })
+          body: JSON.stringify({ images: generatedImgs, keyword: document.getElementById('tsKw').value.trim() || document.getElementById('nvKw').value.trim() || '블로그' })
         });
         const saveData = await saveRes.json();
         if (saveData.success) {
