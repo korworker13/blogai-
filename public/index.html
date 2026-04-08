@@ -981,15 +981,11 @@ async function generateNaver(){
       .replace(/\uFFFD/g, '')
       .trim();
     // Step2: URL 줄바꿈 이어붙이기 (단락분리 전에 먼저)
-    cleanNvText = cleanNvText.replace(
-      /(https?:\/\/)([\s\S]*?)(?=\n\n|\n[가-힣]|$)/g,
-      (m, proto, rest) => {
-        const joined = proto + rest.replace(/\s*\n\s*/g, '');
-        return joined.replace(/(https?:\/\/[^\s가-힣\n]+)/g, u => u.replace(/\s+/g, ''));
-      }
-    );
-    // Step3: 숫자 소제목 이어붙이기 ("1.\n\n소제목" 빈줄 여러개도 처리)
-    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*[\n]+\s*([^\n]+)/gm, '$1. $2');
+    cleanNvText = cleanNvText.replace(/https?:\/\/[^\s][\s\S]*?(?=\s*(?:\n\n|\n[가-힣]|$))/g, u => u.replace(/\s*\n\s*/g, ''));
+    // Step2-b: 대제목 "제목:" 뒤 줄바꿈 이어붙이기
+    cleanNvText = cleanNvText.replace(/^(제목)\s*:\s*\n[\s\n]*([^\n]+)/gm, '$1: $2');
+    // Step3: 숫자 소제목 이어붙이기 ("1.\n\n소제목" — 빈줄 사이 공백까지 처리)
+    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n[\s\n]*([^\n]+)/gm, '$1. $2');
     // Step4: FAQ Q/A 줄바꿈 이어붙이기
     cleanNvText = cleanNvText.replace(/^(Q|A)\s*:\s*\n+\s*([^\n]+)/gm, '$1: $2');
     // Step5: 단락 분리 (마지막에)
@@ -1208,7 +1204,11 @@ async function generateTistory(){
     const tsText=await geminiAsk(tsPromptTemplate,25000,'gemini-3.1-flash-lite-preview');
     if(!tsText) throw new Error('Gemini 응답 없음: '+(window._lastGeminiErr||'API 키/모델 확인'));
 
-    const cleanTsText = tsText.replace(/\uFFFD/g, '').trim();
+    let cleanTsText = tsText.replace(/\uFFFD/g, '').trim();
+    // URL 줄바꿈 이어붙이기
+    cleanTsText = cleanTsText.replace(/https?:\/\/[^\s][\s\S]*?(?=\s*(?:\n\n|<|$))/g, u => u.replace(/\s*\n\s*/g, ''));
+    // TISTORY-TITLE 주석 줄바꿈 이어붙이기
+    cleanTsText = cleanTsText.replace(/(<!--\s*TISTORY-TITLE\s*:)\s*\n[\s\n]*([^\n-]+)/g, '$1 $2');
     gd.ts=cleanTsText;
     document.getElementById('tsOut').textContent=cleanTsText;
     document.getElementById('ok-ts').classList.add('on');
