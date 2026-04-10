@@ -29,7 +29,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .ksaved.on{display:flex}
 .wrap{display:flex;flex:1;overflow:hidden;align-items:stretch;position:relative}
 .sb{width:334px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;position:fixed;top:52px;left:0;bottom:0;height:calc(100vh - 52px);z-index:10}
-.sb-sc{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.sb-sc{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;padding-bottom:40px;display:flex;flex-direction:column;gap:10px}
 .sb-sc::-webkit-scrollbar{width:3px}
 .sb-sc::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:calc(100vh - 52px);margin-left:334px}
@@ -177,7 +177,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   html,body{overflow:auto;height:auto}
   .wrap{flex-direction:column;overflow:visible}
   .sb{width:100%;border-right:none;overflow:visible;position:relative;height:auto;top:auto;left:auto;bottom:auto}
-  .sb-sc{overflow:visible}
+  .sb-sc{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:30px}
   .main{min-height:500px;overflow:visible;display:none;margin-left:0}
   .main.on{display:flex}
   .out-area{overflow:visible;max-height:none}
@@ -921,7 +921,7 @@ function buildLinkInjectPrompt(inject, cat) {
   const coupang = inject.coupangUrl;
   const naver = inject.naverUrl;
   const pname = inject.productName || '관련 추천 상품';
-  let prompt = `\n\n★ 제휴 링크 삽입 규칙 (필수):\n글 본문 중간 자연스러운 2곳에 제품 링크를 삽입하세요.\n광고처럼 보이지 않게 정보 흐름 안에 자연스럽게 비서처럼 배치.\n`;
+  let prompt = `\n\n★ 글 구조 및 제휴 링크 삽입 규칙 (필수):\n소제목 6개 이상 필수. 각 소제목 본문 150자 이상. 전체 글 1500자 이상.\n소제목은 이모지+한글 형식 (예: 💡 이런 점이 좋아요). 마크다운 ##, ** 금지.\n제휴링크는 3번째~4번째 소제목 사이(본문 중반부)에 자연스럽게 1회 삽입,\n글 마무리 직전 후반부에 1회 추가 삽입. 총 2곳.\n광고처럼 보이지 않게 정보 흐름 안에 자연스럽게 비서처럼 배치.\n`;
   if (coupang) {
     prompt += `\n첫 번째 링크 삽입 위치 (본문 중반부):\n📌 직접 써봤는데 이게 진짜 좋아요\n→ [${pname} 쿠팡에서 보기](${coupang})\n※ 이 링크는 쿠팡 파트너스 활동의 일환으로 소정의 수수료를 제공받습니다.\n`;
   } else {
@@ -1638,29 +1638,31 @@ async function generateReview() {
 8. 순수 텍스트 + 이모지만 사용
 9. 한 문단 2~3줄 이내 (모바일 최적화)
 10. AI 클리셰 금지: "함께 알아보겠습니다", "도움이 되셨나요", "진심으로 추천"
+11. 소제목 6개 필수 — 각 소제목 섹션 최소 200자 이상 작성
+12. 전체 글 최소 1500자 이상 (절대 짧게 끊지 말 것)
 
-✅ 글 구조:
+✅ 글 구조 (소제목 6개 필수, 순서 변경 금지):
 제목: [유머/솔직함이 담긴 리뷰 제목]
 예: "${productName} 한 달 써본 솔직 후기 — 이거 살 뻔 한 거 맞아? 🤔"
 
-도입부: 구매 계기 (충동구매? 고민 기간? 주변 추천?)
+도입부: 구매 계기 (충동구매? 고민 기간? 주변 추천?) — 최소 150자
 
 💰 가격이 좀... 근데 샀어요
-(구매 결정 과정, 가격 고민 유머 포함)
+(구매 결정 과정, 가격 고민 유머 포함 — 최소 200자)
 
 📦 개봉기 — 첫인상
-(박스 열었을 때 느낌, 구성품 등)
+(박스 열었을 때 느낌, 구성품 등 — 최소 200자)
 
 ✅ 한 달 써보니 이런 점이 좋아요
-(장점 3가지, 구체적 상황 묘사)
+(장점 3가지, 구체적 상황 묘사 — 최소 250자)
 
 😅 솔직히 이건 아쉬워요
-(단점 1~2가지, 솔직하게)
+(단점 1~2가지, 솔직하게 — 최소 200자)
 
 🤔 이런 분께 추천 / 이런 분께는 비추
-(구매 추천 대상 명확히)
+(구매 추천 대상 명확히 — 최소 150자)
 
-마무리: 이후 + 구매 링크
+마무리: 총평 + 구매 링크 — 최소 150자
 
 ${linkText}
 
@@ -1674,7 +1676,22 @@ ${linkText}
     showTab('review');
 
     setProg(60, '🖼 리뷰 이미지 생성 중...');
-    await generateReviewImages(productName, feature, myOpinion, imgCount);
+    let productRefImageB64 = null, productRefImageMime = 'image/jpeg';
+    if (productUrl) {
+      try {
+        const imgRes = await fetch('/api/fetch-product-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: productUrl })
+        });
+        const imgData = await imgRes.json();
+        if (imgData.imageBase64) {
+          productRefImageB64 = imgData.imageBase64;
+          productRefImageMime = imgData.mimeType || 'image/jpeg';
+        }
+      } catch(e) { /* 이미지 추출 실패해도 계속 진행 */ }
+    }
+    await generateReviewImages(productName, feature, myOpinion, imgCount, productRefImageB64, productRefImageMime);
 
     setProg(90, '💾 저장 중...');
     await saveReviewResult(productName, reviewText);
@@ -1691,30 +1708,38 @@ ${linkText}
   }
 }
 
-async function generateReviewImages(productName, feature, myOpinion, imgCount) {
+async function generateReviewImages(productName, feature, myOpinion, imgCount, productRefImageB64, productRefImageMime) {
   const grid = document.getElementById('reviewImgGrid');
   grid.innerHTML = '';
   const gk = document.getElementById('geminiKey').value.trim();
 
   let imageScenes = [];
   try {
-    const sceneGenPrompt = `당신은 제품 사진 디렉터입니다.
-아래 제품의 실제 생활 사용 장면 이미지 ${imgCount}개의 프롬프트를 만들어주세요.
+    const sceneGenPrompt = `You are a product photo director. Create ${imgCount} realistic lifestyle photo prompts for the product below.
 
-[상품명]: ${productName}
-[상품 특징]: ${feature || '없음'}
-[사용자 경험]: ${myOpinion || '없음'}
+Product: ${productName}
+Features: ${feature || 'none'}
+User experience: ${myOpinion || 'none'}
 
-✅ 규칙:
-- 제품 특성에 맞는 실제 사용 공간/상황 스스로 판단
-  (음식처리기→주방 싱크대, 캠핑체어→야외, 에어랩→욕실, 러닝화→공원 등)
-- 사람 없이 제품 중심
-- 자연광, 실제 생활 공간, 약간의 어수선함 (스튜디오 절대 금지)
-- AI 느낌 배제, 실사 느낌
-- 각 장면은 다른 각도/상황 (전체샷, 사용중 샷, 디테일 샷 등)
+RULES:
+- Determine the most natural real-world environment for this product category:
+  * Kitchen appliances (blender, air fryer, coffee maker) → kitchen counter or dining table, morning light
+  * Camping/outdoor gear (chair, tent, lantern) → forest clearing, campsite, golden hour
+  * Hair/beauty tools (hair dryer, curler) → bathroom vanity or bedroom dresser
+  * Running/sports shoes → park path, sidewalk, gym floor
+  * Skincare/cosmetics → bathroom shelf, vanity counter
+  * Tech/electronics → desk, home office, couch side table
+  * Bedding/pillows → unmade bed, bedroom setting
+  * Bags/backpacks → café table, city street, desk
+  * Baby/kids items → nursery, playroom, living room floor
+- No people, product is the hero
+- Natural light (no studio flash), real lived-in spaces with slight imperfections
+- No AI look — photorealistic DSLR style, shallow depth of field
+- Each scene: different angle/situation (wide shot, close-up detail, in-use context, overhead flat lay)
+- Include realistic props that fit the product environment
 
-JSON 배열만 반환 (설명 없이, 영어 프롬프트로):
-["장면1 영어 프롬프트", "장면2 영어 프롬프트", ...]`;
+Return JSON array only (no explanation, English prompts):
+["scene1 prompt", "scene2 prompt", ...]`;
 
     const sceneResult = await geminiAsk(sceneGenPrompt, 1000, 'gemini-3.1-flash-lite-preview');
     const cleaned = (sceneResult || '').replace(/```json|```/g, '').trim();
@@ -1736,10 +1761,15 @@ JSON 배열만 반환 (설명 없이, 영어 프롬프트로):
     grid.appendChild(card);
 
     try {
+      const reqBody = { apiKey: gk, prompt: imageScenes[i] };
+      if (i === 0 && productRefImageB64) {
+        reqBody.refImageBase64 = productRefImageB64;
+        reqBody.refImageMime = productRefImageMime || 'image/jpeg';
+      }
       const r = await fetch('/api/gemini-image', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ apiKey: gk, prompt: imageScenes[i] })
+        body: JSON.stringify(reqBody)
       });
       const data = await r.json();
       if (data.imageData) {

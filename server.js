@@ -193,14 +193,19 @@ const server = http.createServer(async (req, res) => {
 
   // 이미지 생성 API (gemini-3.1-flash-image-preview / generateContent)
   if (req.method === 'POST' && req.url === '/api/gemini-image') {
-    const { apiKey, prompt } = await readBody(req);
+    const { apiKey, prompt, refImageBase64, refImageMime } = await readBody(req);
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
 
     try {
       const modelName = 'gemini-3.1-flash-image-preview';
+      const parts = [];
+      if (refImageBase64) {
+        parts.push({ inlineData: { mimeType: refImageMime || 'image/jpeg', data: refImageBase64 } });
+      }
+      parts.push({ text: prompt || '' });
       const body = {
-        contents: [{ parts: [{ text: prompt || '' }] }],
+        contents: [{ parts }],
         generationConfig: { responseModalities: ['Text', 'Image'] }
       };
       const result = await httpsPost('generativelanguage.googleapis.com',
@@ -227,6 +232,71 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ imageData, mimeType, error: imgErr }));
     } catch (e) {
       res.writeHead(500);
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
+  // 제품 URL에서 og:image 추출 → base64 반환
+  if (req.method === 'POST' && req.url === '/api/fetch-product-image') {
+    const { url } = await readBody(req);
+    if (!url) { res.writeHead(400); res.end(JSON.stringify({ error: 'URL 없음' })); return; }
+    try {
+      // og:image URL 추출 (최대 3회 리다이렉트 추적)
+      const fetchHtml = (targetUrl, redirectCount) => new Promise((resolve, reject) => {
+        if (redirectCount > 3) return reject(new Error('리다이렉트 초과'));
+        const lib = targetUrl.startsWith('https') ? https : http;
+        const req2 = lib.get(targetUrl, { timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp) => {
+          if ([301, 302, 303, 307, 308].includes(resp.statusCode) && resp.headers.location) {
+            const next = resp.headers.location.startsWith('http') ? resp.headers.location
+              : new URL(resp.headers.location, targetUrl).href;
+            resp.resume();
+            return resolve(fetchHtml(next, redirectCount + 1));
+          }
+          const chunks = [];
+          resp.on('data', c => chunks.push(c));
+          resp.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+        });
+        req2.on('error', reject);
+        req2.on('timeout', () => { req2.destroy(); reject(new Error('타임아웃')); });
+      });
+
+      const html = await fetchHtml(url, 0);
+      const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                  || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+      if (!ogMatch) { res.writeHead(200); res.end(JSON.stringify({ error: 'og:image 없음' })); return; }
+
+      let imgUrl = ogMatch[1];
+      if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+
+      // 이미지 다운로드 → base64
+      const fetchImg = (imgTarget, redirectCount) => new Promise((resolve, reject) => {
+        if (redirectCount > 3) return reject(new Error('이미지 리다이렉트 초과'));
+        const lib2 = imgTarget.startsWith('https') ? https : http;
+        const req3 = lib2.get(imgTarget, { timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp2) => {
+          if ([301, 302, 303, 307, 308].includes(resp2.statusCode) && resp2.headers.location) {
+            const next = resp2.headers.location.startsWith('http') ? resp2.headers.location
+              : new URL(resp2.headers.location, imgTarget).href;
+            resp2.resume();
+            return resolve(fetchImg(next, redirectCount + 1));
+          }
+          const imgChunks = [];
+          resp2.on('data', c => imgChunks.push(c));
+          resp2.on('end', () => {
+            const buf = Buffer.concat(imgChunks);
+            const mime = resp2.headers['content-type'] || 'image/jpeg';
+            resolve({ imageBase64: buf.toString('base64'), mimeType: mime.split(';')[0].trim() });
+          });
+        });
+        req3.on('error', reject);
+        req3.on('timeout', () => { req3.destroy(); reject(new Error('이미지 타임아웃')); });
+      });
+
+      const imgResult = await fetchImg(imgUrl, 0);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(imgResult));
+    } catch(e) {
+      res.writeHead(200);
       res.end(JSON.stringify({ error: e.message }));
     }
     return;
