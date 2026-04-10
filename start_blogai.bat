@@ -1,5 +1,5 @@
 @echo off
-chcp 65001 > /dev/null
+chcp 65001 > nul
 title BlogAI v10 - 로컬 서버
 color 0A
 
@@ -14,7 +14,7 @@ if not exist "server.js" (
 )
 
 :: 포트 3000 이미 사용 중인지 확인
-netstat -ano | findstr ":3000" | findstr "LISTENING" > /dev/null 2>&1
+netstat -ano | findstr ":3000 " | findstr "LISTENING" > nul 2> nul
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo  서버가 이미 실행 중입니다. 브라우저를 엽니다...
@@ -40,13 +40,13 @@ set "CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
 set "CHROME86=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
 
 if exist "%EDGE%" (
-    start "" /b cmd /c "timeout /t 2 /nobreak > /dev/null && \"%EDGE%\" http://localhost:3000"
+    start "" /b cmd /c "timeout /t 2 /nobreak > nul && \"%EDGE%\" http://localhost:3000"
 ) else if exist "%CHROME%" (
-    start "" /b cmd /c "timeout /t 2 /nobreak > /dev/null && \"%CHROME%\" http://localhost:3000"
+    start "" /b cmd /c "timeout /t 2 /nobreak > nul && \"%CHROME%\" http://localhost:3000"
 ) else if exist "%CHROME86%" (
-    start "" /b cmd /c "timeout /t 2 /nobreak > /dev/null && \"%CHROME86%\" http://localhost:3000"
+    start "" /b cmd /c "timeout /t 2 /nobreak > nul && \"%CHROME86%\" http://localhost:3000"
 ) else (
-    start "" /b cmd /c "timeout /t 2 /nobreak > /dev/null && start http://localhost:3000"
+    start "" /b cmd /c "timeout /t 2 /nobreak > nul && start http://localhost:3000"
 )
 
 node server.js
