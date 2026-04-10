@@ -887,11 +887,37 @@ async function fetchHot(){
     // Gemini로 선별 (Claude 사용 안 함)
     if(!gk){ chips.innerHTML='<span style="font-size:12px;color:var(--rd)">⚠ Gemini API 키가 필요합니다 (키워드 선별용)</span>'; btn.textContent='🔥 3일 이내 핫 키워드 자동 선별'; btn.disabled=false; return; }
 
-    // ctx 없어도 Gemini 학습 데이터 기반으로 키워드 생성
-    const finalQ = ctx ? baseQ
-      : (userKeyword
-          ? '"'+userKeyword+'" 관련 블로그 SEO 키워드 10개. 검색량 높고 글 주제와 직결된 키워드 우선. 금융/보험/재테크 카테고리일 때만 고단가 우선..'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]'
-          : '"'+cat+'" 카테고리 블로그 키워드 10개. 검색량 높고 애드포스트 고단가 우선.'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]');
+    // 제휴링크 토글 ON이면 에버그린 키워드로 전환
+    const linkToggleOn = document.getElementById('linkToggle')?.checked;
+    let finalQ;
+
+    if (linkToggleOn) {
+      finalQ = userKeyword
+        ? '"' + userKeyword + '" 관련 에버그린(스테디) 키워드 10개 추천.\n' +
+          '조건:\n' +
+          '- 시간이 지나도 꾸준히 검색되는 정보성 키워드 (계절/이슈 무관)\n' +
+          '- 실제 쿠팡/네이버쇼핑에서 관련 상품 구매로 자연스럽게 연결 가능한 것\n' +
+          '- 방법(How-to), 추천, 비교, 고르는 법, 사용법, 효능, 레시피 형태 선호\n' +
+          '- 이슈성/사건사고 키워드 절대 금지 (월드컵, 사건, 재난 등)\n' +
+          excludeList + '\nJSON 배열만 반환: ["키워드1",...,"키워드10"]'
+        : '"' + cat + '" 카테고리 에버그린(스테디) 키워드 10개 추천.\n' +
+          '조건:\n' +
+          '- 시간이 지나도 꾸준히 검색되는 정보성 키워드 (1년 뒤에도 유효한 것)\n' +
+          '- 실제 쿠팡/네이버쇼핑에서 관련 상품 구매로 자연스럽게 연결 가능한 것\n' +
+          '- 방법(How-to), 추천, 비교, 고르는 법, 사용법, 효능, 레시피 형태 선호\n' +
+          '- 카테고리별 예시:\n' +
+          '  생활정보: 단물 족발 만드는 법 / 실리콘 용기 추천 / 음식물 냄새 제거법\n' +
+          '  건강·의료: 비타민C 권장량 / 마그네슘 효능 / 오메가3 먹는 시간\n' +
+          '  육아·교육: 이유식 첫 번째 레시피 / 젓가락 학습 / 아기 뒤집기 교육법\n' +
+          '  여행: 캠핑 텐트 고르는 법 / 여행용 캐리어 추천 / 캠핑 버너 비교\n' +
+          '- 이슈성/사건사고 키워드 절대 금지\n' +
+          excludeList + '\nJSON 배열만 반환: ["키워드1",...,"키워드10"]';
+    } else {
+      finalQ = ctx ? baseQ
+        : (userKeyword
+            ? '"'+userKeyword+'" 관련 블로그 SEO 키워드 10개. 검색량 높고 글 주제와 직결된 키워드 우선. 금융/보험/재테크 카테고리일 때만 고단가 우선..'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]'
+            : '"'+cat+'" 카테고리 블로그 키워드 10개. 검색량 높고 애드포스트 고단가 우선.'+excludeList+'\nJSON 배열만 반환: ["키워드1",...,"키워드10"]');
+    }
 
     const t = await geminiAsk(finalQ, 500, 'gemini-3.1-flash-lite-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
@@ -911,7 +937,11 @@ async function fetchHot(){
       toast('🔥 핫 키워드 '+kws.length+'개 선별 완료!');
     }
   }catch(e){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">오류: '+e.message+'</span>';}
-  finally{btn.textContent='🔥 3일 이내 핫 키워드 자동 선별';btn.disabled=false;}
+  finally{
+    const _on = document.getElementById('linkToggle')?.checked;
+    btn.textContent = _on ? '🔗 제휴링크용 에버그린 키워드 선별' : '🔥 3일 이내 핫 키워드 자동 선별';
+    btn.disabled = false;
+  }
 }
 
 /* ═══ 제휴링크 프롬프트 빌더 ═══ */
@@ -1589,6 +1619,10 @@ async function generateAllGeminiImages(target) {
 function onLinkToggle() {
   const on = document.getElementById('linkToggle').checked;
   document.getElementById('linkPanel').style.display = on ? 'block' : 'none';
+  const hotBtn = document.getElementById('hotBtn');
+  if (hotBtn && !hotBtn.disabled) {
+    hotBtn.textContent = on ? '🔗 제휴링크용 에버그린 키워드 선별' : '🔥 3일 이내 핫 키워드 자동 선별';
+  }
   if (!on) {
     document.getElementById('coupangUrl').value = '';
     document.getElementById('naverShopUrl').value = '';
