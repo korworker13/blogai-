@@ -1880,17 +1880,16 @@ Return JSON array only (no explanation, English prompts):
   while (imageScenes.length < imgCount) imageScenes.push(imageScenes[imageScenes.length - 1]);
   imageScenes = imageScenes.slice(0, imgCount);
 
-  for (let i = 0; i < imgCount; i++) {
-    setProg(60 + i * 8, `🖼 리뷰 이미지 ${i+1}/${imgCount} 생성 중...`);
-    const card = document.createElement('div');
-    card.className = 'img-card';
-    card.id = `review-img-card-${i}`;
+  // 이미지 생성 함수 (재시도 포함) — 클로저로 gk/imageScenes/productRefImageB64 캡처
+  async function generateOneReviewImage(idx) {
+    const card = document.getElementById(`review-img-card-${idx}`);
+    if (!card) return;
     card.innerHTML = `<div style="aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--tx3)">생성 중...</div>`;
-    grid.appendChild(card);
 
     try {
-      const reqBody = { apiKey: gk, prompt: imageScenes[i] };
-      if (i === 0 && productRefImageB64) {
+      // ★ 모든 이미지에 ref 이미지 전달 (1번째만이 아니라 전체)
+      const reqBody = { apiKey: gk, prompt: imageScenes[idx] };
+      if (productRefImageB64) {
         reqBody.refImageBase64 = productRefImageB64;
         reqBody.refImageMime = productRefImageMime || 'image/jpeg';
       }
@@ -1902,13 +1901,17 @@ Return JSON array only (no explanation, English prompts):
       const data = await r.json();
       if (data.imageData) {
         const src = `data:${data.mimeType || 'image/jpeg'};base64,${data.imageData}`;
-        const fname = `${productName.replace(/\s+/g,'-')}-review-${String(i+1).padStart(2,'0')}.jpg`;
+        const fname = `${productName.replace(/\s+/g,'-')}-review-${String(idx+1).padStart(2,'0')}.jpg`;
         card.innerHTML = `
           <img src="${src}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block">
           <div style="padding:8px">
-            <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">리뷰 이미지 ${i+1}</div>
-            <button class="btn-sm" style="width:100%;justify-content:center"
-              onclick="downloadReviewImg('${data.imageData}','${data.mimeType||'image/jpeg'}','${fname}')">💾 저장</button>
+            <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">리뷰 이미지 ${idx+1}</div>
+            <div style="display:flex;gap:5px">
+              <button class="btn-sm" style="flex:1;justify-content:center"
+                onclick="downloadReviewImg('${data.imageData}','${data.mimeType||'image/jpeg'}','${fname}')">💾 저장</button>
+              <button class="btn-sm" style="flex:1;justify-content:center"
+                onclick="generateOneReviewImage(${idx})">🔄 재시도</button>
+            </div>
           </div>`;
         if (isLocal) {
           fetch('/api/save-image', {
@@ -1918,12 +1921,34 @@ Return JSON array only (no explanation, English prompts):
           }).catch(() => {});
         }
       } else {
-        card.innerHTML = `<div style="aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--tx3);text-align:center;padding:10px">이미지 생성 실패<br>${data.error||''}</div>`;
+        // ★ 실패 시 재시도 버튼 표시
+        card.innerHTML = `
+          <div style="aspect-ratio:1;background:var(--bg3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px">
+            <div style="font-size:11px;color:var(--tx3);text-align:center">이미지 생성 실패<br><span style="font-size:10px">${data.error||'다시 시도해주세요'}</span></div>
+            <button class="btn-sm" style="width:100%;justify-content:center" onclick="generateOneReviewImage(${idx})">🔄 재시도</button>
+          </div>`;
       }
     } catch(e) {
-      card.innerHTML = `<div style="aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--tx3)">오류</div>`;
+      // ★ 오류(타임아웃 포함) 시 재시도 버튼 표시
+      card.innerHTML = `
+        <div style="aspect-ratio:1;background:var(--bg3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px">
+          <div style="font-size:11px;color:var(--tx3);text-align:center">요청 타임아웃<br><span style="font-size:10px">120초 초과</span></div>
+          <button class="btn-sm" style="width:100%;justify-content:center" onclick="generateOneReviewImage(${idx})">🔄 재시도</button>
+        </div>`;
     }
-    if (i < imgCount - 1) await new Promise(res => setTimeout(res, 5000));
+  }
+  // onclick 문자열에서 호출 가능하도록 전역 노출
+  window.generateOneReviewImage = generateOneReviewImage;
+
+  for (let i = 0; i < imgCount; i++) {
+    setProg(60 + i * 8, `🖼 리뷰 이미지 ${i+1}/${imgCount} 생성 중...`);
+    const card = document.createElement('div');
+    card.className = 'img-card';
+    card.id = `review-img-card-${i}`;
+    card.innerHTML = `<div style="aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--tx3)">생성 중...</div>`;
+    grid.appendChild(card);
+    await generateOneReviewImage(i);
+    if (i < imgCount - 1) await new Promise(res => setTimeout(res, 3000));
   }
 }
 
