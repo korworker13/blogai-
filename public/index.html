@@ -956,12 +956,15 @@ function buildLinkInjectPrompt(inject, cat) {
 
   if (coupang) {
     prompt += `\n첫 번째 링크 (본문 중반부 → 관련 내용 설명 직후 자연스럽게):\n💡 이럴 때 이거 하나 있으면 훨씬 편해요\n→ [${pname} 보러가기](${coupang})\n※ 이 링크는 쿠팡 파트너스 활동의 일환으로 소정의 수수료를 제공받습니다.\n`;
+  } else if (naver) {
+    // 쿠팡 없고 네이버만 있으면 → 쿠팡 문구 절대 삽입 금지
+    prompt += `\n첫 번째 링크 없음 (쿠팡 미입력 → 쿠팡 관련 내용 절대 쓰지 말 것)\n`;
   } else {
-    prompt += `\n첫 번째 링크 위치 (본문 중반부):\n[📌 쿠팡파트너스 링크 교체 위치 → 추천상품: ${pname}]\n※ 이 링크는 쿠팡 파트너스 활동의 일환으로 소정의 수수료를 제공받습니다.\n`;
+    prompt += `\n첫 번째 링크 위치 (본문 중반부):\n[📌 쿠팡파트너스 링크 교체 위치 → 추천상품: ${pname}]\n`;
   }
 
   if (naver) {
-    prompt += `\n두 번째 링크 (본문 후반부 → 마무리 직전 자연스럽게):\n📦 가격 비교해보고 싶으신 분들은 여기서 확인하세요\n→ [${pname} 최저가 보기](${naver})\n`;
+    prompt += `\n두 번째 링크 (본문 후반부 → 마무리 직전 자연스럽게):\n📦 가격 비교해보고 싶으신 분들은 여기서 확인하세요\n→ [${pname} 최저가 보기](${naver})\n※ 이 포스팅은 네이버 쇼핑 커넥트 활동의 일환으로, 판매 발생 시 수수료를 제공받습니다.\n`;
   } else {
     prompt += `\n두 번째 링크 위치 (본문 후반부):\n[📌 네이버쇼핑 링크 교체 위치 → 추천상품: ${pname}]\n`;
   }
@@ -1073,7 +1076,7 @@ async function generateNaver(){
       `- [이미지${i+1} 삽입 위치 - 설명]: ${imgPositions[i] || (i+1)+'번째 소제목 뒤'}`
     ).join('\\n');
 
-    let nvPromptTemplate = `[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]\n키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 애드포스트 수익 전략 (필수 준수):\n\n【1. CTR 클릭률 극대화】\n- 제목: 개수형 숫자("3가지", "5단계") + 손해/혜택/궁금증 자극 표현 필수\n- 금액 숫자("월 30만원", "연 100만원" 등)는 금융/보험/지원금/재테크 카테고리일 때만 사용. 여행/생활/환경/식물/건강 주제에는 절대 사용 금지.\n- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)\n- 각 소제목도 클릭욕구 자극하는 표현 사용\n\n【2. 황금 키워드 + 고단가 키워드 필수 포함】\n- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치\n- 카테고리 "${nvKwCat}"와 직접 관련된 고단가 키워드만 자연스럽게 포함 (글 주제와 무관한 키워드 강제 삽입 금지)\n- 카테고리 "${nvKwCat}"가 금융/보험/지원금/재테크일 때만 고단가 키워드를 소제목 또는 문단에 배치. 그 외는 주제 직결 키워드만 사용.\n- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용\n\n【3. 이슈성 + 정보성 결합】\n- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)\n- 중반부: 구체적 수치/조건/절차/혜택 정보\n- 후반부: 독자 행동 유도(신청, 비교, 확인 등)\n\n【4. 체류시간 극대화】\n- 소제목 6개 이상 (각각 독립적 정보 단위)\n- FAQ 5개 이상 (실제 검색 의도와 일치)\n- 단계별 설명 또는 비교 목록 포함\n- 관련 카테고리 키워드로 추가 읽을거리 유도\n\n【5. 경험 자연스럽게 녹이기】\n- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입\n- ${expGuide}\n- 경험 직후 바로 관련 팁/정보로 연결\n\n【6. AI냄새 제거 — 사람이 쓴 글처럼】\n- 경험 주체를 매번 다르게 쓸 것 (친구/동료/동생/지인/사촌 등 글 전체에서 각 1회만 등장, 반복 금지)\n- 경험담은 글 주제에 맞는 구체적 디테일 필수 (금액·시간·횟수·결과 등 수치 포함, 주제와 무관한 상황 묘사 금지)\n- 소제목은 반드시 궁금증/긴장감 유발 표현으로 (단순 설명형 절대 금지)\n  금지: "예매 전 준비사항", "신청 방법 안내"\n  권장(금융/지원금): "이것만 몰랐어도 30만원 날릴 뻔한 실수"\n  권장(일반): "다들 모르고 지나치는 숨은 혜택", "이것만 알면 반나절 줄어드는 실수"\n- 각 문단은 새로운 정보만 담을 것 (앞 내용 반복·요약 금지)\n- 아래 표현은 절대 사용 금지 (AI 클리셰)\n  "이슈 트렌드", "알뜰한 재테크의 일환", "함께 알아보았습니다", "진심으로 응원", "오늘도 유익한 정보", "도움이 되셨나요"\n- 문장을 과도하게 정중하거나 격식체로 끝내지 말 것 (구어체·블로그체 유지)\n- URL 규칙 (매우 중요): URL은 반드시 한 줄로만 작성. www. 다음 줄바꿈 절대 금지. 도메인 중간 줄바꿈 절대 금지. 잘못된 예: https://www.\\nahnlab.\\ncom / 올바른 예: https://www.ahnlab.com / URL 앞뒤로 빈 줄 하나씩 추가해서 단독 라인으로\n- 태그는 글 내용과 직접 관련된 것만 (소득공제·재테크 등 주제 무관 태그 금지)\n\n기술 규칙:\n- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심\n- 표(table) 절대 금지\n- 단락 사이 빈 줄 필수\n- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)\n- 순수 텍스트 + 이모지만 사용\n\n형식:\n첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]\n도입부 3줄: 공감 + 이슈 + 해결 암시\n소제목 6개+: 이모지 + 자극적이고 정보적인 소제목\n각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입\n마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가\n\n★ 이미지 배치 규칙 (매우 중요):\n- 이미지는 총 ${imgCount}개만 배치. 초과 금지.\n${nvImgRules}\n- 반드시 소제목 사이사이 분산 배치\n- 마지막에 몰아서 넣기 절대 금지\n\n태그 20개 맨 아래 (# 없이 줄바꿈)\nHTML 태그 없이 순수 텍스트${nvMemo}${nvOp}${nvCtx}${nvModeInject}\n역할: 대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`;
+    let nvPromptTemplate = `[네이버 블로그 — 애드포스트 수익 최적화 + 모바일]\n키워드: "${fNvKw}" | 카테고리: ${nvKwCat} | 목표: ${nvChar}자+ | 구성: ${optStr} | 이미지: ${imgCount}개\n\n★ 애드포스트 수익 전략 (필수 준수):\n\n【1. CTR 클릭률 극대화】\n- 제목: 개수형 숫자("3가지", "5단계") + 손해/혜택/궁금증 자극 표현 필수\n- 금액 숫자("월 30만원", "연 100만원" 등)는 금융/보험/지원금/재테크 카테고리일 때만 사용. 여행/생활/환경/식물/건강 주제에는 절대 사용 금지.\n- 도입부 3줄: 독자 공감(상황 묘사) → 최신 이슈/문제 제시 → 해결책 암시 (30초컷 유도)\n- 각 소제목도 클릭욕구 자극하는 표현 사용\n\n【2. 황금 키워드 + 고단가 키워드 필수 포함】\n- 주제 키워드 "${fNvKw}"을 제목·소제목·본문에 자연스럽게 반복 배치\n- 카테고리 "${nvKwCat}"와 직접 관련된 고단가 키워드만 자연스럽게 포함 (글 주제와 무관한 키워드 강제 삽입 금지)\n- 카테고리 "${nvKwCat}"가 금융/보험/지원금/재테크일 때만 고단가 키워드를 소제목 또는 문단에 배치. 그 외는 주제 직결 키워드만 사용.\n- 황금 키워드: 검색량 높고 시의성 있는 복합 키워드 소제목에 활용\n\n【3. 이슈성 + 정보성 결합】\n- 최신 뉴스·이유·배경을 도입부에서 시의성 있게 다룸 (단순 설명 금지)\n- 중반부: 구체적 수치/조건/절차/혜택 정보\n- 후반부: 독자 행동 유도(신청, 비교, 확인 등)\n\n【4. 체류시간 극대화】\n- 소제목 6개 이상 (각각 독립적 정보 단위)\n- FAQ 5개 이상 (실제 검색 의도와 일치)\n- 단계별 설명 또는 비교 목록 포함\n- 관련 카테고리 키워드로 추가 읽을거리 유도\n\n【5. 경험 자연스럽게 녹이기】\n- 경험을 별도 섹션으로 분리하지 말고 각 정보 문단 안에 자연스럽게 삽입\n- ${expGuide}\n- 경험 직후 바로 관련 팁/정보로 연결\n\n【6. AI냄새 제거 — 사람이 쓴 글처럼】\n- 경험 주체를 매번 다르게 쓸 것 (친구/동료/동생/지인/사촌 등 글 전체에서 각 1회만 등장, 반복 금지)\n- 경험담은 글 주제에 맞는 구체적 디테일 필수 (금액·시간·횟수·결과 등 수치 포함, 주제와 무관한 상황 묘사 금지)\n- 소제목은 반드시 궁금증/긴장감 유발 표현으로 (단순 설명형 절대 금지)\n  금지: "예매 전 준비사항", "신청 방법 안내"\n  권장(금융/지원금): "이것만 몰랐어도 30만원 날릴 뻔한 실수"\n  권장(일반): "다들 모르고 지나치는 숨은 혜택", "이것만 알면 반나절 줄어드는 실수"\n- 각 문단은 새로운 정보만 담을 것 (앞 내용 반복·요약 금지)\n- 아래 표현은 절대 사용 금지 (AI 클리셰)\n  "이슈 트렌드", "알뜰한 재테크의 일환", "함께 알아보았습니다", "진심으로 응원", "오늘도 유익한 정보", "도움이 되셨나요"\n- 문장을 과도하게 정중하거나 격식체로 끝내지 말 것 (구어체·블로그체 유지)\n- URL 규칙 (매우 중요): URL은 반드시 한 줄로만 작성. www. 다음 줄바꿈 절대 금지. 도메인 중간 줄바꿈 절대 금지. 잘못된 예: https://www.\\nahnlab.\\ncom / 올바른 예: https://www.ahnlab.com / URL 앞뒤로 빈 줄 하나씩 추가해서 단독 라인으로\n- 태그는 글 내용과 직접 관련된 것만 (소득공제·재테크 등 주제 무관 태그 금지)\n\n기술 규칙:\n- 한 문단 최대 2~3줄 (50자 이내) — 모바일 핵심\n- 표(table) 절대 금지\n- 단락 사이 빈 줄 필수\n- 마크다운 기호 절대 금지 (##, #, -, *, ** 금지)\n- 순수 텍스트 + 이모지만 사용\n\n형식:\n첫 줄: 제목: [CTR형 제목 - 숫자+혜택/손해/궁금증]\n도입부 3줄: 공감 + 이슈 + 해결 암시\n소제목 6개+: 이모지 + 자극적이고 정보적인 소제목\n각 소제목 아래: 3~4문단 + 경험 1-2문장 삽입\n마무리: 관련 정보 클릭 유도 + 댓글/공감/이웃추가\n\n★ 이미지 배치 규칙 (매우 중요):\n- 이미지는 총 ${imgCount}개만 배치. 초과 금지.\n${nvImgRules}\n- 반드시 소제목 사이사이 분산 배치\n- 마지막에 몰아서 넣기 절대 금지\n\n태그 20개 맨 아래 (# 없이 줄바꿈)\n\n참고 사이트가 있으면 태그 바로 위에 아래 형식으로 정리:\n📎 참고 사이트\n1. [URL 도메인명 추출한 사이트명] - https://도메인주소\n2. ...\n(사이트명은 URL 도메인을 보고 직접 추출. 없으면 생략)\n\nHTML 태그 없이 순수 텍스트${nvMemo}${nvOp}${nvCtx}${nvModeInject}\n역할: 대한민국 최고 블로그 SEO 전문가이자 애드포스트 수익화 전문 네이버 블로거 ${nick}. 카테고리: ${nvKwCat}.`;
 
     // ★ 제휴링크 토글 ON 상태면 링크 프롬프트 주입
     const linkToggleOn = document.getElementById('linkToggle')?.checked;
@@ -1096,12 +1099,18 @@ async function generateNaver(){
       .replace(/\*\*/g, '')
       .replace(/\uFFFD/g, '')
       .trim();
-    // Step2: URL 줄바꿈 이어붙이기 (연속 줄바꿈 포함 URL 전체를 한 줄로)
-    cleanNvText = cleanNvText.replace(/https?:\/\/[^\s]*(\s*\n\s*[^\s\n]+)*/g, m => m.replace(/\s*\n\s*/g, ''));
+    // Step2: URL 내부 줄바꿈 제거 + URL 앞뒤 빈 줄 보장
+    cleanNvText = cleanNvText.replace(/https?:\/\/\S*(\n\S+)*/g, m => m.replace(/\n/g, ''));
+    cleanNvText = cleanNvText.replace(/([^\n])(https?:\/\/)/g, '$1\n\n$2');
+    cleanNvText = cleanNvText.replace(/(https?:\/\/[^\n]+)([^\n])/g, '$1\n\n$2');
+    // 연속 URL 분리
+    cleanNvText = cleanNvText.replace(/(https?:\/\/[^\s]+)(https?:\/\/)/g, '$1\n\n$2');
     // Step2-b: 대제목 "제목:" 뒤 줄바꿈 이어붙이기
     cleanNvText = cleanNvText.replace(/^(제목)\s*:\s*\n[\s\n]*([^\n]+)/gm, '$1: $2');
-    // Step3: 숫자 소제목 이어붙이기 — 다음 줄이 숫자로 시작하면 소수점(4.5점 등) 오인 차단
-    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n([\s\n]*)([^\n\d])/gm, '$1. $3');
+    // Step3: 숫자 소제목 이어붙이기 — 3단계 강화
+    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n[\s\n]*([^\n\d])/gm, '$1. $2');
+    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n[\s\n]*([^\n\d])/gm, '$1. $2');
+    cleanNvText = cleanNvText.replace(/^(\d+)\.\s*\n+\s*([^\n\d\s])/gm, '$1. $2');
     // Step4: FAQ Q+숫자 / A 단독 줄바꿈 이어붙이기 (Q1. Q2. A. 모두 처리)
     cleanNvText = cleanNvText.replace(/^(Q\d*|A)\s*[.:]\s*\n+\s*([^\n]+)/gm, '$1. $2');
     // Step5: 단락 분리 (마지막에)
@@ -1123,8 +1132,10 @@ async function generateNaver(){
     const styleInstruction = selectedStyle==='photo'
       ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
       : selectedStyle==='mixed'
-      ? 'A mix of realistic photography and graphic overlays, modern digital art style, vibrant and engaging.'
-      : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
+      ? 'Split composition: left half realistic lifestyle photo, right half clean infographic with Korean text labels and icons. Flat design meets photography. Modern Korean blog thumbnail style.'
+      : 'Clean card-news infographic style, Korean text overlay, flat design, icon-based, pastel background, bold typography, organized layout.';
+    window._currentImgStyle = selectedStyle;
+    window._currentStyleInstruction = styleInstruction;
     const imgPromptQ = `다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[네이버 키워드]: ${fNvKw}\n\n[네이버 글 내용]:\n${nvContent}\n\n[이미지-소제목 매핑]:\n${nvImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${styleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. 매번 고유한 내용 (중복 금지)\n4. prompt_en: 미드저니/DALL-E용 영어 (피사체+구도+색감+스타일 포함, 4K/8K 등 고해상도 키워드 금지)\n5. prompt_gpt: ChatGPT·Canva용 한국어 상세 프롬프트 (고해상도 키워드 제외)\n6. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"naver","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"naver-xxx.jpg"},...]`;
     
     let promptRaw = await geminiAsk(imgPromptQ, 3000, 'gemini-3.1-flash-lite-preview');
@@ -1342,8 +1353,10 @@ async function generateTistory(){
     const tsStyleInstruction = tsSelectedStyle==='photo'
       ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
       : tsSelectedStyle==='mixed'
-      ? 'A mix of realistic photography and graphic overlays, modern digital art style, vibrant and engaging.'
-      : 'Clean card-news infographic style, text placeholders, flat design, icon-based, pastel background, organized layout.';
+      ? 'Split composition: left half realistic lifestyle photo, right half clean infographic with Korean text labels and icons. Flat design meets photography. Modern Korean blog thumbnail style.'
+      : 'Clean card-news infographic style, Korean text overlay, flat design, icon-based, pastel background, bold typography, organized layout.';
+    window._currentImgStyle = tsSelectedStyle;
+    window._currentStyleInstruction = tsStyleInstruction;
     const tsImgPromptQ=`다음 블로그 글을 분석하여 각 소제목에 맞는 이미지 프롬프트를 JSON으로 생성하세요.\n\n[티스토리 키워드]: ${fTsKw}\n\n[글 내용 요약]:\n${tsContent}\n\n[이미지-소제목 매핑]:\n${tsImgMap}\n\n★ 시각적 스타일 지침 (매우 중요 — 모든 프롬프트에 반드시 반영):\n- 전체 이미지 스타일: ${tsStyleInstruction}\n- 모든 prompt_en과 prompt_gpt는 이 스타일에 맞춰 구도와 질감을 묘사하세요.\n\n★ 규칙:\n1. 각 이미지는 매핑된 소제목 내용만 표현\n2. 글에 없는 내용, 추상적 이미지 금지\n3. prompt_en: 미드저니/DALL-E용 영어\n4. prompt_gpt: ChatGPT·Canva용 한국어 상세\n5. prompt_ko: 짧은 한국어 프롬프트\n\nJSON 배열만 반환 (총 ${imgCount}개):\n[{"type":"tistory","num":1,"title":"20자내","prompt_en":"영어","prompt_gpt":"한국어상세","prompt_ko":"짧은한국어","caption":"40자내","filename":"tistory-xxx.jpg"},...]`;
 
     let tsPromptRaw=await geminiAsk(tsImgPromptQ,3000,'gemini-3.1-flash-lite-preview');
@@ -1471,7 +1484,17 @@ async function generateGeminiImage(uid) {
     const basePrompt = (p.prompt_ko || p.prompt_gpt || p.prompt_en || p.title || '')
       .replace(/\[여기에 제목을 입력하세요\]/g, p.title || '')
       .replace(/\[여기에 내용을 작성하세요\]/g, p.caption || p.title || '');
-    const prompt = basePrompt;
+
+    // ★ 선택된 스타일 지침을 프롬프트 앞에 강하게 삽입
+    const currentStyle = window._currentImgStyle || document.getElementById('imgStyle').value || 'infographic';
+    const styleGuide = window._currentStyleInstruction ||
+      (currentStyle === 'photo'
+        ? 'Realistic high-quality photography, cinematic lighting, authentic atmosphere, no text on image.'
+        : currentStyle === 'mixed'
+        ? 'Split composition: left half realistic lifestyle photo, right half clean infographic with Korean text labels and icons. Flat design meets photography. Modern Korean blog thumbnail style.'
+        : 'Clean card-news infographic style, Korean text overlay, flat design, icon-based, pastel background, bold typography, organized layout.');
+    const prompt = `[STYLE: ${styleGuide}]\n\n${basePrompt}`;
+
     const r = await fetch('/api/gemini-image', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},

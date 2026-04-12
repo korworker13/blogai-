@@ -7,6 +7,9 @@ const { exec } = require('child_process');
 const PORT = 3000;
 const SAVE_BASE = 'C:\\Users\\GKL\\Desktop\\블로그';
 
+// ★ 현재 세션 저장 폴더 (save-all 호출 시 설정, save-image 에서 재사용)
+let currentSessionDir = null;
+
 function readBody(req) {
   return new Promise((resolve) => {
     let body = '';
@@ -326,15 +329,14 @@ const server = http.createServer(async (req, res) => {
   // 이미지 파일 저장 API (개별) — 날짜 순번 폴더/이미지/ 에 저장
   if (req.method === 'POST' && req.url === '/api/save-image') {
     const { imageData, mimeType, filename } = await readBody(req);
-    const today = new Date().toISOString().slice(0, 10);
-    // 오늘 날짜 폴더 중 가장 최근 순번 폴더를 찾아서 이미지 폴더에 저장
-    let baseDir = path.join(SAVE_BASE, today);
-    let cnt = 2;
-    while (fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt})`))) cnt++;
-    if (cnt > 2 && fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt - 1})`))) {
-      baseDir = path.join(SAVE_BASE, `${today}(${cnt - 1})`);
-    } else if (!fs.existsSync(baseDir)) {
-      baseDir = getDateFolder();
+    // ★ save-all이 만든 세션 폴더 우선 사용, 없으면 오늘 날짜 폴더
+    let baseDir;
+    if (currentSessionDir && fs.existsSync(currentSessionDir)) {
+      baseDir = currentSessionDir;
+    } else {
+      const today = new Date().toISOString().slice(0, 10);
+      baseDir = path.join(SAVE_BASE, today);
+      if (!fs.existsSync(baseDir)) ensureDir(baseDir);
     }
     const saveDir = path.join(baseDir, '이미지');
     try {
@@ -364,14 +366,14 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: '이미지 없음' }));
       return;
     }
-    const today = new Date().toISOString().slice(0, 10);
-    let baseDir = path.join(SAVE_BASE, today);
-    let cnt = 2;
-    while (fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt})`))) cnt++;
-    if (cnt > 2 && fs.existsSync(path.join(SAVE_BASE, `${today}(${cnt - 1})`))) {
-      baseDir = path.join(SAVE_BASE, `${today}(${cnt - 1})`);
-    } else if (!fs.existsSync(baseDir)) {
-      baseDir = getDateFolder();
+    // ★ save-all이 만든 세션 폴더 우선 사용
+    let baseDir;
+    if (currentSessionDir && fs.existsSync(currentSessionDir)) {
+      baseDir = currentSessionDir;
+    } else {
+      const today = new Date().toISOString().slice(0, 10);
+      baseDir = path.join(SAVE_BASE, today);
+      if (!fs.existsSync(baseDir)) ensureDir(baseDir);
     }
     const saveDir = path.join(baseDir, '이미지');
     try {
@@ -462,6 +464,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/api/save-all') {
     const { nv, ts, nvPrompts, tsPrompts, nvKw, tsKw } = await readBody(req);
     const saveDir = getDateFolder();
+    currentSessionDir = saveDir; // ★ 현재 세션 폴더 기억
 
     // ★ 키워드 기반 파일명 생성
     const makeSlug = (kw) => (kw || '블로그글')
