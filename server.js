@@ -216,8 +216,8 @@ const server = http.createServer(async (req, res) => {
       if (result && result.error) console.error('[GeminiImage API ERROR]', JSON.stringify(result.error));
 
       let imageData = null, mimeType = 'image/jpeg';
-      const parts = result?.candidates?.[0]?.content?.parts || [];
-      for (const part of parts) {
+      const resParts = result?.candidates?.[0]?.content?.parts || [];
+      for (const part of resParts) {
         if (part.inlineData && part.inlineData.data) {
           imageData = part.inlineData.data;
           mimeType = part.inlineData.mimeType || 'image/jpeg';
