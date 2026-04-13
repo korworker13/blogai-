@@ -1143,27 +1143,44 @@ async function generateNaver(){
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
 
-      const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 날짜/연도 검증 필수:\n- 2025년 이전 정보는 목차와 팩트에서 완전히 제외할 것. 확인필요 표시도 하지 말고 아예 사용 금지.\n- 2026년 기준 정보만 확정 사실로 본문에 반영\n- 2026년 확인된 정보가 없으면 해당 항목은 "현재 공식 발표 전"으로 표기\n- 날짜/금액/조건이 작년 기준이면 절대 현재 사실처럼 쓰지 말 것\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함\n- 독자가 바로 활용할 수 있는 핵심 정보를 주제에 맞게 별도 섹션으로 정리\n  예) 공연/행사 → 날짜·장소·가격·예매링크 / 법규/제도 → 적용대상·조건·계산법 / 경제 → 수치·지표·전망 / 정책 → 시행일·대상·신청방법`;
+      const makeOutlineQ = `다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fNvKw}\n[뉴스 원문 5개]:\n${nvNews5||"(없음)"}\n\n[심층 배경·추가 정보]:\n${nvDeep||"(없음)"}\n${nvOpinionAngle ? `\n→ 블로거 관점 (목차 전체가 이 방향으로 구성돼야 함):\n${nvOpinionAngle}\n` : ''}\n★ 분석 지침 (모든 카테고리 공통):\n0. 현실 흐름 반영 (필수): 단순 새로 쓴 설명 금지. 최신 트렌드·생활 변화·실제 사례·현실적인 문제점을 목차에 반드시 반영할 것. 독자가 "이건 정말 필요한 정보다"라고 느껴야 함.\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 날짜/연도 검증 필수:\n- 2025년 이전 정보는 목차와 팩트에서 완전히 제외할 것. 확인필요 표시도 하지 말고 아예 사용 금지.\n- 2026년 기준 정보만 확정 사실로 본문에 반영\n- 2026년 확인된 정보가 없으면 해당 항목은 "현재 공식 발표 전"으로 표기\n- 날짜/금액/조건이 작년 기준이면 절대 현재 사실처럼 쓰지 말 것\n\n★ 출력 형식 (반드시 아래 두 섹션 포함):\n\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n- 뉴스에 없는 내용은 절대 추가하지 말 것\n\n## 블로그 목차 (네이버 모바일 최적화)\n- 소제목 6개 이상\n- 각 소제목 아래 해당 팩트와 연결되는 내용 요점 1줄씩\n- 추출한 팩트 수치를 소제목 또는 요점에 직접 반영\n- FAQ 5개 포함\n- 독자가 바로 활용할 수 있는 핵심 정보를 주제에 맞게 별도 섹션으로 정리\n  예) 공연/행사 → 날짜·장소·가격·예매링크 / 법규/제도 → 적용대상·조건·계산법 / 경제 → 수치·지표·전망 / 정책 → 시행일·대상·신청방법`;
       nvOutline = await geminiAsk(makeOutlineQ, 1200, 'gemini-3.1-flash-lite-preview')||''; // Text generation
       toast('✅ [3단계] Gemini 팩트+목차 완료');
     }
 
     const nvCtx = (nvOutline||nvNews5||nvDeep) ? `\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(nvOutline||nvNews5||nvDeep).slice(0,4000)}${nvVerifiedLinks}\n★ 위 목차와 팩트 기반으로 집필. 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━` : '';
 
-    /* ━━ STEP 2b: 나의 의견 보완 (나의 의견 입력 시) ━━ */
-    let augOpinionNv='';
+    /* ━━ STEP 2b: 의견 뉘앙스 감지 + 보완 ━━ */
+    let augOpinionNv = '';
+    let nvOpinionAngle = ''; // → 글 전체 관점/방향
     if(opinionNv){
-      setProg(18,'💭 의견 보완 중 (네이버)...');
+      setProg(18,'💭 의견 분석 중 (네이버)...');
       try{
+        // → 1단계: 의견에서 글 뉘앙스(관점) 감지
+        const angleQ = `블로거가 "${fNvKw}" 키워드로 글을 쓰려고 합니다.\n블로거 의견: "${opinionNv}"\n\n이 의견을 분석해서 아래 두 가지를 JSON으로 반환하세요.\n\n1. angle: 글 전체를 어떤 관점으로 써야 하는지 한 줄 (예: "경고/항로 관점 → 피해 사례와 주의점 중심", "긍정 추천 관점 → 효과와 활용법 중심", "비교 분석 관점 → 장단점 균형있게")\n2. titleHint: 이 관점에 맞는 자극적이고 클릭을 유발하는 제목 방향 한 줄 (예: "돈 날린 실제 사례 + 주의해야 할 이유", "직접 해보니 이게 진짜다 + 구체적 결과")\n\nJSON만 반환:\n{"angle": "...", "titleHint": "..."}`;
+        const angleResult = await geminiAsk(angleQ, 200, 'gemini-3.1-flash-lite-preview');
+        if(angleResult){
+          try{
+            const cleaned = angleResult.replace(/```json|```/g,'').trim();
+            const parsed = JSON.parse(cleaned.match(/\{[\s\S]*\}/)?.[0] || '{}');
+            if(parsed.angle) nvOpinionAngle = `[블로거 관점]: ${parsed.angle}\n[제목 방향]: ${parsed.titleHint||''}`;
+          }catch(e){}
+        }
+        // → 2단계: 의견 보완 (기존 로직 유지)
         const opCtx = nvDeep ? `\n관련정보:\n${nvDeep.slice(0,400)}` : '';
-        augOpinionNv = await geminiAsk(`블로거 의견: "${opinionNv}"\n키워드: ${fNvKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`, 500, 'gemini-3.1-flash-lite-preview'); // Text generation
+        augOpinionNv = await geminiAsk(
+          `블로거 의견: "${opinionNv}"\n키워드: ${fNvKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,
+          500, 'gemini-3.1-flash-lite-preview'
+        );
       }catch(e){augOpinionNv=opinionNv;}
     }
 
     /* ━━ STEP 3a: Gemini 3.1 Pro 네이버 글 작성 ━━ */
     setProg(20,'[3] Gemini 3.1 Pro-Preview 네이버 블로그 글 작성 중...');
     const nvMemo=memoNv?`\n\n━━ 블로그 주인 메모 (반드시 글에 녹여낼 것) ━━\n${memoNv}\n━━ 끝 ━━`:'';
-    const nvOp=augOpinionNv?`\n\n━━ 블로그 주인 추가 의견 (글 중간에 자연스럽게 녹여낼 것) ━━\n${augOpinionNv}\n━━ 끝 ━━`:'';
+    const nvOp = augOpinionNv
+      ? `\n\n━━ 블로그 주인 핵심 관점 (글 전체가 이 방향으로 써야 함) ━━\n${nvOpinionAngle ? nvOpinionAngle+'\n' : ''}블로거 실제 의견: ${augOpinionNv}\n\n→ 이 관점을 글 전체에 반영할 것:\n- 제목부터 이 관점이 드러나야 함\n- 각 소제목이 이 관점을 뒷받침하는 구성\n- 새로 쓴 설명보다 실제 사례/현실/주의점 중심\n- 독자가 이 관점에서 얻을 수 있는 것을 명확히\n━━ 끝 ━━`
+      : '';
     // ★ 구성요소 조건부 지시문 생성
     const hasFAQ = opts.includes('FAQ');
     const hasExp = opts.includes('경험담');
@@ -1461,26 +1478,41 @@ async function generateTistory(){
     let tsOutline='';
     if(gk){
       setProg(22,'[3] Gemini 팩트 추출 + 목차 작성 중...');
-      const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n\n★ 분석 지침 (모든 카테고리 공통):\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 날짜/연도 검증 필수:\n- 2025년 이전 정보는 목차와 팩트에서 완전히 제외할 것. 확인필요 표시도 하지 말고 아예 사용 금지.\n- 2026년 기준 정보만 확정 사실로 본문에 반영\n- 2026년 확인된 정보가 없으면 해당 항목은 "현재 공식 발표 전"으로 표기\n- 날짜/금액/조건이 작년 기준이면 절대 현재 사실처럼 쓰지 말 것\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함\n- 독자가 바로 활용할 수 있는 핵심 정보를 주제에 맞게 별도 섹션으로 정리\n  예) 공연/행사 → 날짜·장소·가격·예매링크 / 법규/제도 → 적용대상·조건·계산법 / 경제 → 수치·지표·전망 / 정책 → 시행일·대상·신청방법`;
+      const outlineQ=`다음 뉴스와 심층 정보를 분석해서 아래 두 가지를 작성하세요.\n\n[키워드]: ${fTsKw}\n[뉴스 원문 5개]:\n${tsNews5||'(없음)'}\n\n[심층 배경·추가 정보]:\n${tsDeep||'(없음)'}\n${tsOpinionAngle ? `\n→ 블로거 관점 (목차 전체가 이 방향으로 구성돼야 함):\n${tsOpinionAngle}\n` : ''}\n★ 분석 지침 (모든 카테고리 공통):\n0. 현실 흐름 반영 (필수): 단순 새로 쓴 설명 금지. 최신 트렌드·생활 변화·실제 사례·현실적인 문제점을 목차에 반드시 반영할 것. 독자가 "이건 정말 필요한 정보다"라고 느껴야 함.\n1. 맥락 기반 도구/상품 추출: 여행→결제 혜택 카드·현지 필수 앱, 금융/복지→신청 전용 앱·연계 계좌, 생활→최저가 비교 앱·관련 멤버십. 글 주제와 무관한 상품은 절대 배제, 독자의 실행을 돕는 "도구" 관점에서만 추출.\n2. 팩트 체크: 뉴스·검색 결과에 근거한 공식 명칭과 수치만 사용, 가공의 정보 금지.\n3. 자연스러운 배치: 상품 언급이 광고처럼 보이지 않도록 "준비물"이나 "이용 팁" 섹션에 배치.\n\n★ 날짜/연도 검증 필수:\n- 2025년 이전 정보는 목차와 팩트에서 완전히 제외할 것. 확인필요 표시도 하지 말고 아예 사용 금지.\n- 2026년 기준 정보만 확정 사실로 본문에 반영\n- 2026년 확인된 정보가 없으면 해당 항목은 "현재 공식 발표 전"으로 표기\n- 날짜/금액/조건이 작년 기준이면 절대 현재 사실처럼 쓰지 말 것\n\n★ 출력 형식:\n## 검증된 팩트\n- 날짜, 금액, 조건, 기준 등 수치는 뉴스 원문 기준으로만 추출\n- 불확실한 정보는 "확인필요" 표시\n## 블로그 목차 (티스토리 HTML)\n- h2 소제목 6개 이상\n- 각 소제목 아래 요점 1줄\n- FAQ 5개 포함\n- 독자가 바로 활용할 수 있는 핵심 정보를 주제에 맞게 별도 섹션으로 정리\n  예) 공연/행사 → 날짜·장소·가격·예매링크 / 법규/제도 → 적용대상·조건·계산법 / 경제 → 수치·지표·전망 / 정책 → 시행일·대상·신청방법`;
       tsOutline=await geminiAsk(outlineQ,1200,'gemini-3.1-flash-lite-preview')||'';
     }
 
     const tsCtx=(tsOutline||tsNews5||tsDeep)?`\n\n━━ Gemini 팩트·목차 (반드시 준수) ━━\n${(tsOutline||tsNews5||tsDeep).slice(0,2000)}${tsVerifiedLinks}\n★ 팩트에 없는 수치·날짜 절대 임의 생성 금지\n━━ 끝 ━━`:'';
 
-    /* 의견 보완 */
-    let augOpinionTs='';
+    /* 의견 뉘앙스 감지 + 보완 (티스토리) */
+    let augOpinionTs = '';
+    let tsOpinionAngle = '';
     if(opinionTs){
-      setProg(18,'💭 의견 보완 중...');
+      setProg(18,'💭 의견 분석 중...');
       try{
-        const opCtx=tsDeep?`\n관련정보:\n${tsDeep.slice(0,400)}`:'';
-        augOpinionTs=await geminiAsk(`블로거 의견: "${opinionTs}"\n키워드: ${fTsKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,500,'gemini-3.1-flash-lite-preview')||opinionTs;
+        const angleQ2 = `블로거가 "${fTsKw}" 키워드로 글을 쓰려고 합니다.\n블로거 의견: "${opinionTs}"\n\n이 의견을 분석해서 JSON으로 반환하세요.\n{"angle": "글 전체 관점 한 줄", "titleHint": "제목 방향 한 줄"}\nJSON만 반환.`;
+        const angleResult2 = await geminiAsk(angleQ2, 200, 'gemini-3.1-flash-lite-preview');
+        if(angleResult2){
+          try{
+            const cleaned2 = angleResult2.replace(/```json|```/g,'').trim();
+            const parsed2 = JSON.parse(cleaned2.match(/\{[\s\S]*\}/)?.[0] || '{}');
+            if(parsed2.angle) tsOpinionAngle = `[블로거 관점]: ${parsed2.angle}\n[제목 방향]: ${parsed2.titleHint||''}`;
+          }catch(e){}
+        }
+        const opCtx = tsDeep ? `\n관련정보:\n${tsDeep.slice(0,400)}` : '';
+        augOpinionTs = await geminiAsk(
+          `블로거 의견: "${opinionTs}"\n키워드: ${fTsKw}${opCtx}\n\n위 의견을 블로그 본문에 자연스럽게 녹일 수 있도록 200자 내외로 보완하세요. 원래 경험은 살리고 구체적 정보 추가. 보완된 내용만 반환.`,
+          500, 'gemini-3.1-flash-lite-preview'
+        ) || opinionTs;
       }catch(e){augOpinionTs=opinionTs;}
     }
 
     /* STEP 4: Gemini 티스토리 HTML 작성 */
     setProg(35,'[4] 티스토리 HTML 작성 중...');
     const tsMemo=memoTs?`\n\n━━ 블로그 주인 메모 (반드시 글에 녹여낼 것) ━━\n${memoTs}\n━━ 끝 ━━`:'';
-    const tsOp=augOpinionTs?`\n\n━━ 블로그 주인 추가 의견 (글 중간에 자연스럽게 녹여낼 것) ━━\n${augOpinionTs}\n━━ 끝 ━━`:'';
+    const tsOp = augOpinionTs
+      ? `\n\n━━ 블로그 주인 핵심 관점 (글 전체가 이 방향으로 써야 함) ━━\n${tsOpinionAngle ? tsOpinionAngle+'\n' : ''}블로거 실제 의견: ${augOpinionTs}\n\n→ 이 관점을 글 전체에 반영할 것:\n- 제목부터 이 관점이 드러나야 함\n- 각 소제목이 이 관점을 뒷받침하는 구성\n- 새로 쓴 설명보다 실제 사례/현실/주의점 중심\n━━ 끝 ━━`
+      : '';
 
     // ★ 티스토리 구성요소 조건부 지시문
     const tsHasFAQ = opts.includes('FAQ');
