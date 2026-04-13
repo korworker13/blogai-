@@ -460,11 +460,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ★ 세션 초기화 — 이미지 생성 전 폴더 먼저 생성
+  if (req.method === 'POST' && req.url === '/api/init-session') {
+    const saveDir = getDateFolder();
+    currentSessionDir = saveDir;
+    ensureDir(saveDir);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, folder: saveDir }));
+    return;
+  }
+
   // ★ 저장 API — 글 + 이미지 프롬프트 파일 저장
   if (req.method === 'POST' && req.url === '/api/save-all') {
     const { nv, ts, nvPrompts, tsPrompts, nvKw, tsKw } = await readBody(req);
-    const saveDir = getDateFolder();
-    currentSessionDir = saveDir; // ★ 현재 세션 폴더 기억
+    // ★ init-session에서 이미 만든 폴더 재사용, 없으면 새로 생성
+    const saveDir = (currentSessionDir && fs.existsSync(currentSessionDir))
+      ? currentSessionDir
+      : getDateFolder();
+    currentSessionDir = saveDir;
 
     // ★ 키워드 기반 파일명 생성
     const makeSlug = (kw) => (kw || '블로그글')
