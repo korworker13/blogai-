@@ -68,6 +68,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 .chip-hot{border-color:rgba(245,158,11,.35)!important;color:var(--am)!important;background:rgba(245,158,11,.07)!important}
 .chip-gold::before{content:'👑 '}
 .chip-gold{border-color:rgba(255,215,0,.6)!important;color:#ffd700!important;background:rgba(255,215,0,.1)!important;font-weight:700!important;box-shadow:0 0 6px rgba(255,215,0,.25)}
+.chip-ever::before{content:'🌿 '}
+.chip-ever{border-color:rgba(34,197,94,.4)!important;color:#22c55e!important;background:rgba(34,197,94,.08)!important;font-weight:600!important}
 .btn-gen{display:block;width:100%;padding:13px;border-radius:var(--r);border:none;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;box-shadow:0 4px 20px rgba(79,142,247,.28);transition:all .2s;margin-top:2px}
 .btn-gen:hover{transform:translateY(-1px)}
 .btn-gen:disabled{opacity:.4;transform:none;cursor:not-allowed}
@@ -750,31 +752,74 @@ async function datalabScores(keywords) {
   } catch(e) { return {}; }
 }
 
+// 에버그린 키워드 판단 함수 (카테고리 무관, 키워드 패턴으로 판단)
+function isEvergreen(kw) {
+  const everPatterns = [
+    /방법$/, /하는법$/, /하는방법$/, /추천$/, /비교$/, /순위$/,
+    /효능$/, /효과$/, /권장량$/, /먹는법$/, /먹는시간$/,
+    /사용법$/, /고르는법$/, /선택법$/, /차이$/, /차이점$/,
+    /레시피$/, /만드는법$/, /만들기$/, /요리법$/,
+    /계산기$/, /계산법$/, /기준$/, /조건$/, /자격$/,
+    /보는법$/, /읽는법$/, /설정법$/, /설치법$/,
+    /가격$/, /가격대$/, /비용$/, /요금$/,
+    /원인$/, /이유$/, /증상$/, /예방법$/, /치료법$/,
+    /주기$/, /교체시기$/, /관리법$/, /보관법$/,
+    /뜻$/, /의미$/, /정의$/, /종류$/, /유형$/
+  ];
+  return everPatterns.some(p => p.test(kw));
+}
+
 function renderKeywordChips(containerEl, kws, scores, targetInputId, isNaver) {
   containerEl.innerHTML = '';
-  // 점수 기준 정렬 (높은 순)
-  const sorted = [...kws].sort((a, b) => {
+
+  // 3그룹 분류
+  const gold = [], ever = [], hot = [];
+  kws.forEach(k => {
+    const sc = scores[k];
+    if (sc && sc.max >= 60) gold.push(k);
+    else if (isEvergreen(k)) ever.push(k);
+    else hot.push(k);
+  });
+
+  // 각 그룹 내 점수 내림차순 정렬
+  const sortByScore = arr => arr.sort((a, b) => {
     const sa = scores[a] ? scores[a].max : -1;
     const sb = scores[b] ? scores[b].max : -1;
     return sb - sa;
   });
-  sorted.forEach(k => {
-    const el = document.createElement('span');
-    const sc = scores[k];
-    const isGold = sc && sc.max >= 60;
-    const isHot = sc && sc.max >= 30 && sc.max < 60;
-    const hasScore = sc && sc.max > 0;
-    el.className = 'chip' + (isGold ? ' chip-gold' : (isNaver || isHot) ? ' chip-hot' : '');
-    el.title = hasScore ? `최고 ${sc.max} / 평균 ${sc.avg} (DataLab 7일)` : 'DataLab 데이터 없음';
-    el.textContent = k + (hasScore ? ` (${sc.max})` : '');
-    el.onclick = () => {
-      document.getElementById(targetInputId).value = k;
-      containerEl.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
-      el.classList.add('sel');
-      toast((isGold ? '👑 황금키워드 선택: ' : '✔ ') + k);
-    };
-    containerEl.appendChild(el);
-  });
+  sortByScore(gold); sortByScore(ever); sortByScore(hot);
+
+  // 그룹 라벨 + 칩 렌더링
+  function renderGroup(label, arr, chipClass, toastPrefix) {
+    if (!arr.length) return;
+    const labelEl = document.createElement('div');
+    labelEl.style.cssText = 'width:100%;font-size:10px;color:var(--tx3);margin:4px 0 2px;font-weight:600';
+    labelEl.textContent = label;
+    containerEl.appendChild(labelEl);
+    arr.forEach(k => {
+      const el = document.createElement('span');
+      const sc = scores[k];
+      const hasScore = sc && sc.max > 0;
+      el.className = 'chip ' + chipClass;
+      el.title = hasScore ? `최고 ${sc.max} / 평균 ${sc.avg} (DataLab 7일)` : 'DataLab 데이터 없음';
+      el.textContent = k + (hasScore ? ` (${sc.max})` : '');
+      el.onclick = () => {
+        document.getElementById(targetInputId).value = k;
+        containerEl.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+        el.classList.add('sel');
+        toast(toastPrefix + k);
+      };
+      containerEl.appendChild(el);
+    });
+  }
+
+  renderGroup('👑 황금키워드', gold, 'chip-gold', '👑 황금키워드 선택: ');
+  renderGroup('🌿 에버그린', ever, 'chip-ever', '🌿 에버그린키워드 선택: ');
+  renderGroup('🔥 핫키워드', hot, 'chip-hot', '✔ ');
+
+  if (!gold.length && !ever.length && !hot.length) {
+    containerEl.innerHTML = '<span style="font-size:12px;color:var(--tx3)">키워드 없음</span>';
+  }
 }
 
 async function checkUrls(urls) {
