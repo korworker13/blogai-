@@ -462,9 +462,12 @@ const server = http.createServer(async (req, res) => {
 
   // ★ 세션 초기화 — 이미지 생성 전 폴더 먼저 생성
   if (req.method === 'POST' && req.url === '/api/init-session') {
+    // ★ 항상 새 세션 폴더 생성 (기존 currentSessionDir 무시)
+    currentSessionDir = null; // 초기화 후 새로 생성
     const saveDir = getDateFolder();
     currentSessionDir = saveDir;
     ensureDir(saveDir);
+    console.log('[init-session] 새 폴더 생성:', saveDir);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, folder: saveDir }));
     return;
