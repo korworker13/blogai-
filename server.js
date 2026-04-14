@@ -163,7 +163,7 @@ const server = http.createServer(async (req, res) => {
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
 
-    const targetModel = model || 'gemini-3-flash-preview'; // Default model for general text generation
+    const targetModel = model || 'gemini-3.1-flash-lite-preview'; // Default model for general text generation
     try {
       const body = {
         contents: [{ parts: [{ text: prompt || '' }] }],
