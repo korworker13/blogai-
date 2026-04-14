@@ -163,7 +163,7 @@ const server = http.createServer(async (req, res) => {
     const key = apiKey || process.env.GEMINI_API_KEY;
     if (!key) { res.writeHead(400); res.end(JSON.stringify({ error: 'Gemini API 키 없음' })); return; }
 
-    const targetModel = model || 'gemini-3.1-flash-lite-preview'; // Default model for general text generation
+    const targetModel = model || 'gemini-3-flash-preview'; // Default model for general text generation
     try {
       const body = {
         contents: [{ parts: [{ text: prompt || '' }] }],
@@ -328,10 +328,12 @@ const server = http.createServer(async (req, res) => {
 
   // 이미지 파일 저장 API (개별) — 날짜 순번 폴더/이미지/ 에 저장
   if (req.method === 'POST' && req.url === '/api/save-image') {
-    const { imageData, mimeType, filename } = await readBody(req);
-    // ★ save-all이 만든 세션 폴더 우선 사용, 없으면 오늘 날짜 폴더
+    const { imageData, mimeType, filename, targetDir } = await readBody(req);
+    // ★ 클라이언트가 명시적으로 폴더 전달하면 우선 사용
     let baseDir;
-    if (currentSessionDir && fs.existsSync(currentSessionDir)) {
+    if (targetDir && fs.existsSync(targetDir)) {
+      baseDir = targetDir;
+    } else if (currentSessionDir && fs.existsSync(currentSessionDir)) {
       baseDir = currentSessionDir;
     } else {
       const today = new Date().toISOString().slice(0, 10);
@@ -355,7 +357,7 @@ const server = http.createServer(async (req, res) => {
 
   // 이미지 일괄 저장 API — 날짜 순번 폴더/이미지/ 에 한꺼번에 저장
   if (req.method === 'POST' && req.url === '/api/save-image-bulk') {
-    const { images, keyword } = await readBody(req);
+    const { images, keyword, targetDir } = await readBody(req);
     const slugKw = (keyword || '블로그')
       .replace(/[\\/:*?"<>|]/g, '')
       .replace(/\s+/g, '-')
@@ -366,9 +368,11 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: '이미지 없음' }));
       return;
     }
-    // ★ save-all이 만든 세션 폴더 우선 사용
+    // ★ 클라이언트가 명시적으로 폴더 전달하면 우선 사용
     let baseDir;
-    if (currentSessionDir && fs.existsSync(currentSessionDir)) {
+    if (targetDir && fs.existsSync(targetDir)) {
+      baseDir = targetDir;
+    } else if (currentSessionDir && fs.existsSync(currentSessionDir)) {
       baseDir = currentSessionDir;
     } else {
       const today = new Date().toISOString().slice(0, 10);
