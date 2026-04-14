@@ -920,12 +920,21 @@ async function fetchKw(){
     const t=await geminiAsk(prompt,500,'gemini-3-flash-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
-    try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){
+    try{
+      const cleaned=t.replace(/`{3}json|`{3}/gi,'').trim();
+      const x=cleaned.match(/\[[\s\S]*\]/);
+      kws=JSON.parse(x?x[0]:cleaned);
+      if(!Array.isArray(kws)) kws=[];
+    }catch(e){
       // 폴백: 줄바꿈/번호/불릿 목록 형식 처리
-      kws=t.replace(/```[\s\S]*?```/g,'').split('\n')
-        .map(l=>l.replace(/^[\d]+[.)]\s*/,'').replace(/^[-•*]\s*/,'').replace(/^["']|["']$|,$/g,'').trim())
-        .filter(s=>s.length>1&&s.length<40&&!/^(JSON|배열|키워드|반환|Here|아래)/.test(s));
+      kws=t.replace(/`{3}[\s\S]*?`{3}/g,'').split('\n')
+        .map(l=>l.replace(/^[\d]+[.)]\s*/,'').replace(/^[-•*]\s*/,'').replace(/^`+|`+$/g,'').replace(/^["']+|["']+$/g,'').trim())
+        .filter(s=>s.length>1&&s.length<40&&!/^(JSON|배열|키워드|반환|Here|아래|\[|\{)/.test(s));
     }
+    // 후처리: 마크다운 잔재(백틱/따옴표) 제거
+    kws=kws.filter(k=>typeof k==='string')
+      .map(k=>k.replace(/`/g,'').replace(/^["']+|["']+$/g,'').trim())
+      .filter(k=>k.length>1&&k.length<40&&!/[`\[\{]/.test(k));
     if(!Array.isArray(kws)||!kws.length){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ 키워드 파싱 실패. 다시 시도해주세요</span>';return;}
     if(!previousTsKeywords[cat])previousTsKeywords[cat]=[];
     previousTsKeywords[cat]=[...new Set([...previousTsKeywords[cat],...kws])].slice(0,15);
@@ -1018,12 +1027,21 @@ async function fetchHot(){
     const t = await geminiAsk(finalQ, 500, 'gemini-3-flash-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
-    try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){
+    try{
+      const cleaned=t.replace(/`{3}json|`{3}/gi,'').trim();
+      const x=cleaned.match(/\[[\s\S]*\]/);
+      kws=JSON.parse(x?x[0]:cleaned);
+      if(!Array.isArray(kws)) kws=[];
+    }catch(e){
       // 폴백: 줄바꿈/번호/불릿 목록 형식 처리
-      kws=t.replace(/```[\s\S]*?```/g,'').split('\n')
-        .map(l=>l.replace(/^[\d]+[.)]\s*/,'').replace(/^[-•*]\s*/,'').replace(/^["']|["']$|,$/g,'').trim())
-        .filter(s=>s.length>1&&s.length<40&&!/^(JSON|배열|키워드|반환|Here|아래)/.test(s));
+      kws=t.replace(/`{3}[\s\S]*?`{3}/g,'').split('\n')
+        .map(l=>l.replace(/^[\d]+[.)]\s*/,'').replace(/^[-•*]\s*/,'').replace(/^`+|`+$/g,'').replace(/^["']+|["']+$/g,'').trim())
+        .filter(s=>s.length>1&&s.length<40&&!/^(JSON|배열|키워드|반환|Here|아래|\[|\{)/.test(s));
     }
+    // 후처리: 마크다운 잔재(백틱/따옴표) 제거
+    kws=kws.filter(k=>typeof k==='string')
+      .map(k=>k.replace(/`/g,'').replace(/^["']+|["']+$/g,'').trim())
+      .filter(k=>k.length>1&&k.length<40&&!/[`\[\{]/.test(k));
     if(!Array.isArray(kws)||!kws.length){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ 키워드 파싱 실패. 다시 시도해주세요</span>';return;}
     previousNvKeywords=[...new Set([...previousNvKeywords,...kws])].slice(0,20);
     // DataLab 검색량 검증
