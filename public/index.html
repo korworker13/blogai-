@@ -920,7 +920,12 @@ async function fetchKw(){
     const t=await geminiAsk(prompt,500,'gemini-3-flash-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
-    try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
+    try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){
+      // 폴백: 줄바꿈/번호/불릿 목록 형식 처리
+      kws=t.replace(/```[\s\S]*?```/g,'').split('\n')
+        .map(l=>l.replace(/^[\d]+[.)]\s*/,'').replace(/^[-•*]\s*/,'').replace(/^["']|["']$|,$/g,'').trim())
+        .filter(s=>s.length>1&&s.length<40&&!/^(JSON|배열|키워드|반환|Here|아래)/.test(s));
+    }
     if(!Array.isArray(kws)||!kws.length){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ 키워드 파싱 실패. 다시 시도해주세요</span>';return;}
     if(!previousTsKeywords[cat])previousTsKeywords[cat]=[];
     previousTsKeywords[cat]=[...new Set([...previousTsKeywords[cat],...kws])].slice(0,15);
@@ -1013,7 +1018,12 @@ async function fetchHot(){
     const t = await geminiAsk(finalQ, 500, 'gemini-3-flash-preview');
     if(!t){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ Gemini 응답 없음: '+(window._lastGeminiErr||'API 키 확인')+'</span>';return;}
     let kws=[];
-    try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){}
+    try{const x=t.replace(/```json|```/g,'').trim().match(/\[[\s\S]*\]/);kws=JSON.parse(x?x[0]:t);}catch(e){
+      // 폴백: 줄바꿈/번호/불릿 목록 형식 처리
+      kws=t.replace(/```[\s\S]*?```/g,'').split('\n')
+        .map(l=>l.replace(/^[\d]+[.)]\s*/,'').replace(/^[-•*]\s*/,'').replace(/^["']|["']$|,$/g,'').trim())
+        .filter(s=>s.length>1&&s.length<40&&!/^(JSON|배열|키워드|반환|Here|아래)/.test(s));
+    }
     if(!Array.isArray(kws)||!kws.length){chips.innerHTML='<span style="font-size:12px;color:var(--rd)">❌ 키워드 파싱 실패. 다시 시도해주세요</span>';return;}
     previousNvKeywords=[...new Set([...previousNvKeywords,...kws])].slice(0,20);
     // DataLab 검색량 검증
