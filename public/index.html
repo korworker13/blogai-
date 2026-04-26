@@ -1336,13 +1336,14 @@ async function generateNaver(){
     // Step4: FAQ Q/A 처리
     cleanNvText = cleanNvText.replace(/^(Q\d*|A)\s*[.:]\s*\n+\s*([^\n]+)/gm, '$1. $2');
 
-    // Step5: 단락 분리 — URL + 이모지 소제목 + 번호목록 줄 보호
+    // Step5: 단락 분리 — URL + 이모지 소제목 + 번호목록 + Q/A 줄 보호
     cleanNvText = cleanNvText.split(/\n{2,}/).map(p => {
       p = p.trim(); if (!p) return p;
       return p.split('\n').map(line => {
         if (/https?:\/\//.test(line)) return line;                    // URL 보호
         if (line.charCodeAt(0) > 8000 && line.length < 50) return line; // 이모지 소제목 보호
         if (/^\d+\./.test(line)) return line;                         // 번호목록 줄 보호
+        if (/^(Q\d*|A)\s*[.:]\s/.test(line)) return line;            // Q./A. 줄 보호
         return line.replace(/([.?!])\s*(?=[^\n])/g, '$1\n');
       }).join('\n');
     }).filter(Boolean).join('\n\n');
