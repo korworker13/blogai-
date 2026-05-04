@@ -1796,7 +1796,11 @@ async function generateGeminiImage(uid, sessionDir = null) {
         : currentStyle === 'mixed'
         ? 'Mixed style: combine realistic photos AND infographics across images. Each image uses ONE style only — either realistic lifestyle photo OR clean infographic. No text on image.'
         : 'Clean infographic style, flat design, icon-based layout, pastel background, organized visual hierarchy. No text overlay on image.');
-    const prompt = `[STYLE: ${styleGuide}]\n\n${basePrompt}`;
+    // ★ 인포그래픽/혼합 스타일: 이미지 내 텍스트 한국어 강제 (이미지 생성 API에 직접 주입)
+    const koreanTextGuide = (currentStyle === 'infographic' || currentStyle === 'mixed')
+      ? '\n\n[IMPORTANT: If any text or labels appear in the image, they MUST be written in Korean (한국어) only. No English text inside the image.]'
+      : '';
+    const prompt = `[STYLE: ${styleGuide}]${koreanTextGuide}\n\n${basePrompt}`;
 
     const r = await fetch('/api/gemini-image', {
       method: 'POST',
