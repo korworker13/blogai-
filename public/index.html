@@ -1376,7 +1376,17 @@ async function generateNaver(){
       const isShortKorean = /^[가-힣]/.test(l) && l.length < 25 && !/[.。]$/.test(l);
       return startsWithEmoji || isShortKorean;
     }).slice(0, 8);
+    // 본문에서 [이미지N 삽입 위치 - 설명] 직접 추출 (소제목 매핑보다 정확)
+    const imgDescFromContent = [];
+    const imgDescRegex = /\[이미지(\d+)\s*삽입\s*위치[^\]]*\][:\s]*([^\n]+)/g;
+    let imgDescMatch;
+    while ((imgDescMatch = imgDescRegex.exec(gd.nv)) !== null) {
+      imgDescFromContent[parseInt(imgDescMatch[1])-1] = imgDescMatch[2].trim();
+    }
     const nvImgMap = Array.from({length:imgCount},(_, i)=>{
+      if (imgDescFromContent[i]) {
+        return `이미지${i+1}: "${imgDescFromContent[i]}"`;
+      }
       const h = nvHeadings[i] || nvHeadings[nvHeadings.length-1] || fNvKw;
       return `이미지${i+1}: "${h.slice(0,40)}" 소제목에 해당하는 이미지`;
     }).join('\n');
