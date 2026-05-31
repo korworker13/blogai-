@@ -240,51 +240,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 <div class="card">
   <div class="chd"><div class="cdot" style="background:var(--tl)"></div>블로그 설정<div class="cnum">02</div></div>
   <div class="r2">
-    <div class="fld"><label>닉네임</label><input type="text" id="nickName" value="여행 & 생활 블로거"></div>
-    <div class="fld"><label>티스토리 분야</label>
-      <select id="tsBlogType">
-        <option value="국내여행·관광정보">🇰🇷 국내여행·관광정보</option>
-        <option value="해외여행·관광정보">✈️ 해외여행·관광정보</option>
-        <option value="국내+해외 여행 전반">🌏 국내+해외 여행</option>
-        <option value="정부지원금·복지">💡 정부지원금·복지</option>
-        <option value="생활정보">📝 생활정보</option>
-        <option value="금융·재테크">💰 금융·재테크</option>
-        <option value="건강·의료">🩺 건강·의료</option>
-        <option value="육아·교육">👶 육아·교육</option>
-        <option value="이슈·트렌드">🔥 이슈·트렌드</option>
+    <div class="fld"><label>닉네임</label><input type="text" id="nickName" value="생활 블로거"></div>
+    <div class="fld"><label>네이버 카테고리</label>
+      <select id="nvKwCat">
+        <option>정부지원금·복지</option>
+        <option>건강·의료</option>
+        <option>금융·재테크</option>
+        <option>생활꿀팁</option>
+        <option>맛집·카페</option>
+        <option>국내여행</option>
+        <option>뷰티·다이어트</option>
+        <option>육아·교육</option>
+        <option>반려동물</option>
+        <option>이슈·트렌드</option>
       </select>
     </div>
-  </div>
-  <div class="fld"><label>네이버 카테고리</label>
-    <select id="nvKwCat">
-      <option>정부지원금·복지</option><option>생활정보</option>
-      <option>금융·재테크</option><option>건강·의료</option>
-      <option>육아·교육</option><option>이슈·트렌드</option>
-    </select>
   </div>
 </div>
 
 <div class="card">
   <div class="chd"><div class="cdot" style="background:var(--am)"></div>키워드<div class="cnum">03</div></div>
-  <div style="margin-bottom:11px">
-    <div style="font-size:11px;color:var(--ts);font-weight:600;margin-bottom:5px">✈️ 티스토리 여행 키워드</div>
-    <div class="fld"><input type="text" id="tsKw" placeholder="예: 전주 한옥마을 당일치기 코스"></div>
-    <div class="r2" style="margin-top:5px">
-      <div class="fld"><select id="tsKwCat">
-        <option>국내여행·관광정보</option>
-        <option>해외여행·관광정보</option>
-        <option>정부지원금·복지</option>
-        <option>생활정보</option>
-        <option>금융·재테크</option>
-        <option>건강·의료</option>
-        <option>육아·교육</option>
-        <option>이슈·트렌드</option>
-      </select></div>
-      <div class="fld" style="display:flex;align-items:flex-end"><button class="btn-sm" id="tsKwBtn" onclick="fetchKw()" style="width:100%;justify-content:center">✦ 추천</button></div>
-    </div>
-    <div class="chips" id="tsChips"></div>
-  </div>
-  <div style="border-top:1px solid var(--bd);padding-top:10px">
+  <div style="border-top:0;padding-top:0">
     <div style="font-size:11px;color:var(--nv);font-weight:600;margin-bottom:5px">📱 네이버 핫 키워드</div>
     <div class="fld"><input type="text" id="nvKw" placeholder="예: 2026 청년월세지원 신청방법"></div>
     <button class="btn-hot" id="hotBtn" onclick="fetchHot()">🔥 3일 이내 핫 키워드 자동 선별</button>
@@ -309,9 +285,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   <div class="fld"><label>네이버 글에 반영할 내용</label>
     <textarea id="memoNv" placeholder="예: 오늘 직접 신청해봤는데 생각보다 간단했어요. 서류는 주민등록등본 하나만 필요했고..."></textarea>
   </div>
-  <div class="fld" style="margin-top:6px"><label>티스토리 글에 반영할 내용</label>
-    <textarea id="memoTs" placeholder="예: 작년 가을 다녀왔어요. 주차는 효자동 공영주차장 추천. 주말 오전 일찍 가야 인파 덜해요."></textarea>
-  </div>
   <div class="fld" style="margin-top:6px"><label>경험 유형 선택</label>
     <div class="exp-select">
       <button type="button" class="exp-btn" data-exp="direct" onclick="setExperienceType('direct')">내 경험</button>
@@ -320,12 +293,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     </div>
     <input type="hidden" id="experienceType" value="mixed">
   </div>
-  <div class="fld" style="margin-top:6px"><label>나의 추가 의견 <span style="color:var(--tl);font-size:10px">(네이버용)</span></label>
+  <div class="fld" style="margin-top:6px"><label>나의 추가 의견</label>
     <textarea id="opinionNv" placeholder="예: 직접 신청해봤는데 서류가 생각보다 간단했어요. 주민등록등본 1부면 충분했고..." style="min-height:52px;font-size:12px"></textarea>
-    <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
-  </div>
-  <div class="fld" style="margin-top:6px"><label>나의 추가 의견 <span style="color:var(--ts);font-size:10px">(티스토리용)</span></label>
-    <textarea id="opinionTs" placeholder="예: 현장에서 줄이 꽤 길었어요. 주차는 1km 떨어진 공영주차장 추천. 오전 일찍 가면 한산해요." style="min-height:52px;font-size:12px"></textarea>
     <div class="opinion-hint">💡 입력 시 관련 정보를 검색해서 약 200자 보완 후 글에 자연스럽게 추가</div>
   </div>
 
@@ -339,15 +308,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <input type="hidden" id="imgStyle" value="infographic">
   </div>
 
-  <!-- 글자수/이미지 설정을 가로 3칸으로 깔끔하게 배치 -->
-  <div class="r3" style="margin-top:6px">
+  <div class="r2" style="margin-top:6px">
     <div class="fld"><label>이미지 수</label>
       <input type="number" id="imgCount" min="1" max="10" value="4"></div>
-    <div class="fld"><label>네이버 글자수</label>
-      <select id="nvChar"><option value="1200">1,200자+</option><option value="1500" selected>1,500자+</option></select></div>
-    <div class="fld"><label>티스토리 글자수</label>
-      <select id="tsChar"><option value="2000">2,000자+</option><option value="2500" selected>2,500자+</option><option value="3000">3,000자+</option></select></div>
+    <div class="fld"><label>글자수</label>
+      <select id="nvChar"><option value="1200">1,200자+</option><option value="1500" selected>1,500자+</option><option value="2000">2,000자+</option></select></div>
   </div>
+  <input type="hidden" id="tsChar" value="2500">
 
   <input type="hidden" id="blogMode" value="approval">
   <div style="display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap">
@@ -356,7 +323,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
       <button class="bmode-btn" id="bmode-revenue" onclick="setBlogMode('revenue')">💰 수익화</button>
       <button class="bmode-btn" id="bmode-maximize" onclick="setBlogMode('maximize')">🚀 극대화</button>
     </div>
-    <span style="font-size:10px;color:var(--tx3);white-space:nowrap;line-height:1.4">티스토리 전용<br>네이버는 수익화 고정</span>
+    <span style="font-size:10px;color:var(--tx3);white-space:nowrap;line-height:1.4">네이버 블로그<br>글쓰기 모드</span>
   </div>
   <div id="approvalHint" style="font-size:11px;color:var(--tx2);background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.18);border-radius:var(--rs);padding:8px 10px;margin-top:5px;line-height:1.7">
     ✅ AI 냄새 최소화 · 1인칭 경험 중심 · 전문성 집중<br>
@@ -379,9 +346,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 
 <!-- 하단 생성 버튼 -->
 <div style="padding:15px;border-top:1px solid var(--bd);background:var(--bg2);flex-shrink:0;">
-  <div class="r2">
-    <button class="btn-gen" id="genNvBtn" onclick="generateNaver()" style="background:linear-gradient(135deg,var(--nv),#02b350);">📱 네이버 단독 생성</button>
-    <button class="btn-gen" id="genTsBtn" onclick="generateTistory()" style="background:linear-gradient(135deg,var(--ts),#e65c20);">✈️ 티스토리 단독 생성</button>
+  <div style="margin-bottom:7px">
+    <button class="btn-gen" id="genNvBtn" onclick="generateNaver()" style="background:linear-gradient(135deg,var(--nv),#02b350);width:100%">📱 네이버 블로그 생성</button>
   </div>
   <div style="margin-top:7px">
     <button class="btn-gen" id="genReviewBtn" onclick="showReviewPanel()" style="background:linear-gradient(135deg,#a855f7,#7c3aed);font-size:13px;width:100%">⭐ 제품 리뷰 포스팅</button>
@@ -421,7 +387,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
 <div class="main" id="main">
 <div class="tabs">
   <button class="tab nvt on" id="t-nv" onclick="showTab('nv')">📱 네이버</button>
-  <button class="tab tst" id="t-ts" onclick="showTab('ts')">✈️ 티스토리</button>
   <button class="tab imt" id="t-img" onclick="showTab('img')">🖼 이미지 프롬프트</button>
   <button class="tab fixt" id="t-fix" onclick="showTab('fix')">✏️ 수정 요청</button>
   <button class="tab" id="t-seo" onclick="showTab('seo')">✅ SEO</button>
@@ -433,7 +398,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   <div class="empty" id="emptyState">
     <div style="width:56px;height:56px;border-radius:14px;background:var(--bg2);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:26px">✦</div>
     <div style="font-size:15px;font-weight:500;color:var(--tx2)">생성 대기 중</div>
-    <div style="font-size:13px;max-width:280px;line-height:1.8;color:var(--tx3)">딸깍 한 번이면<br><span style="color:var(--nv)">네이버 글</span> + <span style="color:var(--ts)">티스토리 글</span><br>+ <span style="color:var(--pu)">이미지 프롬프트</span> 동시 완성</div>
+    <div style="font-size:13px;max-width:280px;line-height:1.8;color:var(--tx3)">딸깍 한 번이면<br><span style="color:var(--nv)">네이버 블로그 글</span><br>+ <span style="color:var(--pu)">이미지 프롬프트</span> 완성</div>
   </div>
 
   <!-- 네이버 -->
@@ -449,18 +414,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
     <div class="obox prose" id="nvOut">생성하면 여기에 네이버용 텍스트가 나타나요.</div>
   </div>
 
-  <!-- 티스토리 -->
-  <div class="pane" id="pane-ts">
-    <div class="okbanner ok-ts" id="ok-ts">✅ 여행 HTML / 실시간 정보 반영 / 이미지 위치 주석 포함</div>
-    <div class="ohdr">
-      <div><div class="pbadge tsb">✈️ 티스토리</div><div style="font-size:11px;color:var(--tx2)">HTML 모드에 붙여넣기</div></div>
-      <div style="display:flex;gap:5px">
-        <button class="btn-sm" onclick="copyEl('tsOut')">📋 복사</button>
-        <button class="btn-sm" onclick="dlText('tsOut','티스토리_글.html')">💾 저장</button>
-      </div>
-    </div>
-    <div class="obox" id="tsOut">생성하면 여기에 티스토리용 HTML이 나타나요.</div>
-  </div>
 
   <!-- 이미지 프롬프트 -->
   <div class="pane" id="pane-img">
@@ -491,25 +444,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
       </div>
     </div>
 
-    <!-- 티스토리 이미지 프롬프트 -->
-    <div class="prompt-section">
-      <div class="prompt-section-hdr">
-        <div class="pbadge tsb">✈️ 티스토리 이미지 프롬프트</div>
-        <span style="font-size:11px;color:var(--tx3)">여행 · 현장 사진 스타일</span>
-      </div>
-      <div class="prompt-grid" id="pgrid-ts">
-        <div style="color:var(--tx3);font-size:13px;text-align:center;padding:20px 0">생성 후 여기에 나타나요</div>
-      </div>
-    </div>
   </div>
 
   <!-- 수정 요청 -->
   <div class="pane" id="pane-fix">
     <div class="fix-hint"><b>✏️ Gemini에게 수정 요청</b><br>생성된 글을 수정하거나 내용 추가 → 확인 후 반영하기로 원본 교체</div>
-    <div class="ftgrid">
-      <div class="ftbtn on" id="ft-nv" onclick="setFT('nv')"><div class="ftic">📱</div><div class="ftn" style="color:var(--nv)">네이버</div></div>
-      <div class="ftbtn" id="ft-ts" onclick="setFT('ts')"><div class="ftic">✈️</div><div class="ftn" style="color:var(--ts)">티스토리</div></div>
-    </div>
     <div class="ftypegrid">
       <button class="ftybtn" onclick="setFTY(this,'제목을 더 클릭률 높게 바꿔줘')">제목 변경</button>
       <button class="ftybtn" onclick="setFTY(this,'글 톤을 더 친근하고 재밌게 바꿔줘')">톤 변경</button>
@@ -539,13 +478,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);
   <div class="pane" id="pane-seo">
     <div class="ohdr"><div style="font-size:12px;color:var(--tx2)">발행 전 체크리스트</div><button class="btn-sm" onclick="document.querySelectorAll('.cki input').forEach(c=>c.checked=false)">↺ 초기화</button></div>
     <div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">두 블로그 제목이 다른지 확인</div><div class="ckd">제목 같으면 중복 콘텐츠 → 저품질 위험</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">네이버 — 모바일 가독성 확인</div><div class="ckd">짧은 문단, 이모지 소제목, 빈 줄 간격</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">티스토리 — 여행 키워드 자연 배치</div><div class="ckd">지명·관광지·음식 키워드 분산 확인</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">이미지 프롬프트로 이미지 생성 후 삽입</div><div class="ckd">미드저니/ChatGPT/Canva로 생성 → 업로드</div></div></div>
+      <div class="cki"><input type="checkbox"><div><div class="ckl">모바일 가독성 확인</div><div class="ckd">짧은 문단, 이모지 소제목, 빈 줄 간격</div></div></div>
+      <div class="cki"><input type="checkbox"><div><div class="ckl">키워드 자연 배치 확인</div><div class="ckd">제목·첫 문단·소제목에 키워드 포함 여부</div></div></div>
+      <div class="cki"><input type="checkbox"><div><div class="ckl">이미지 생성 후 삽입</div><div class="ckd">이미지 프롬프트 → Gemini/Canva 생성 → 업로드</div></div></div>
       <div class="cki"><input type="checkbox"><div><div class="ckl">발행 시간: 오전 7~9시 또는 오후 6~9시</div><div class="ckd">알고리즘 유입 높은 시간대</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">티스토리 태그 입력 (TISTORY-TAGS 주석)</div><div class="ckd">글 하단 주석 복사 → 태그란</div></div></div>
-      <div class="cki"><input type="checkbox"><div><div class="ckl">네이버 태그 입력 (# 없이 줄바꿈)</div><div class="ckd">글 하단 20개 태그</div></div></div>
+      <div class="cki"><input type="checkbox"><div><div class="ckl">네이버 태그 입력 (#태그1 #태그2 형식)</div><div class="ckd">글 하단 20개 태그 복사 → 태그란 붙여넣기</div></div></div>
+      <div class="cki"><input type="checkbox"><div><div class="ckl">공감·댓글·이웃추가 유도 문구 확인</div><div class="ckd">마무리 문단에 독자 참여 유도 포함 여부</div></div></div>
+      <div class="cki"><input type="checkbox"><div><div class="ckl">공식 사이트 링크 포함 확인 (복지/정책 글)</div><div class="ckd">복지로·정부24 등 URL 본문 포함 여부</div></div></div>
     </div>
   </div>
 
@@ -997,12 +936,16 @@ async function fetchHot(){
     // 네이버+Tavily 뉴스에서 직접 키워드 추출 — Gemini가 선별
     // ★ catKeywordGuide를 스코프 바깥으로 이동 (baseQ + else 블록 모두 참조)
     const catKeywordGuide = {
-      '생활정보': '일상 생활 꿀팁 관련 키워드만. 아래 주제 안에서만 선택:\n요리/음식/레시피, 주방/청소/정리/살림, 이불/절약/생활비, 냄새제거/인테리어/빨래, 냉장고/주방용품 관리, 음식물보관/잔여음식 처리\n★ 절대 금지: ESG경영, AI챗봇, 지속가능소비, 스마트폰, 개인정보보호, 최저임금, 경제, 친환경소비 성향, 환경이슈, 투자, 금융 관련 키워드\n- 반드시 "방법/하는법/추천/비교/정리법/활용법/만드는법/레시피/꿀팁/노하우/손질법/보관법" 형태로 생성\n- 좋은 예: "냉장고정리꿀팁", "음식물냄새제거방법", "주방청소꿀팁", "된장찌개레시피", "빨래냄새없애는법"\n- 나쁜 예: "AI챗봇활용법", "ESG경영실천방법", "지속가능소비방법"',
-      '건강·의료': '건강·음식·이론·질병·증상 관련 키워드만. 금융/경제 절대 금지.\n- "효능/먹는법/권장량/예방법/증상/치료법/주의사항" 형태로 생성\n- 예: "마그네슘효능", "비타민D먹는시간", "철분제권장량"',
-      '육아·교육': '육아·이유식·교육·학습 관련 키워드만.\n- "방법/하는법/추천/레시피/시기" 형태로 생성\n- 예: "이유식첫재료", "아기다지기시기", "젖갈떼는법"',
-      '정부지원금·복지': '정부지원·복지·보조금·신청 관련 키워드만.\n- "신청방법/조건/대상/기준/혜택" 형태로 생성',
-      '금융·재테크': '금융·투자·재테크·저축 관련 키워드만.\n- "방법/조건/금리/비교/추천" 형태로 생성',
-      '이슈·트렌드': '최신 이슈·트렌드·사회현상 관련 키워드.',
+      '정부지원금·복지': '정부지원·복지·보조금·신청 관련 키워드만.\n- "신청방법/조건/대상/기준/혜택/바로가기/조회" 형태로 생성\n- 예: "청년월세지원신청방법", "노인장기요양등급신청", "기초생활수급자조건"',
+      '건강·의료': '건강·질병·증상·영양 관련 키워드만. 금융/경제 절대 금지.\n- "효능/먹는법/권장량/예방법/증상/치료법/주의사항/좋은음식" 형태로 생성\n- 예: "마그네슘효능부작용", "비타민D먹는시간", "혈당낮추는음식"',
+      '금융·재테크': '금융·투자·재테크·저축·카드 관련 키워드만.\n- "방법/조건/금리/비교/추천/혜택/신청" 형태로 생성\n- 예: "적금금리높은은행비교", "청년도약계좌신청방법", "연말정산공제항목"',
+      '생활꿀팁': '일상 생활 꿀팁 관련 키워드만. 아래 주제 안에서만 선택:\n요리/음식/레시피, 주방/청소/정리/살림, 절약/생활비, 냄새제거/인테리어/빨래, 냉장고/주방용품 관리\n★ 절대 금지: ESG, AI챗봇, 투자, 금융 관련\n- "방법/레시피/꿀팁/노하우/보관법/제거법" 형태로 생성\n- 예: "냉장고정리꿀팁", "된장찌개레시피", "주방청소꿀팁"',
+      '맛집·카페': '맛집·카페·음식 관련 키워드만.\n- "추천/솔직후기/가격/주차/웨이팅/메뉴추천" 형태로 생성\n- 예: "성수동카페추천", "제주도맛집베스트", "홍대브런치카페"',
+      '국내여행': '대한민국 국내 여행지·관광 관련 키워드만. 해외여행 절대 금지.\n- "추천/코스/가볼만한곳/당일치기/숙소/맛집/입장료" 형태로 생성\n- 예: "경주당일치기코스", "강원도드라이브코스", "제주도3박4일여행"',
+      '뷰티·다이어트': '뷰티·스킨케어·다이어트·운동 관련 키워드만.\n- "방법/추천/효과/순서/루틴/비교" 형태로 생성\n- 예: "모공케어루틴", "복부다이어트방법", "피부트러블없애는법"',
+      '육아·교육': '육아·이유식·교육·학습 관련 키워드만.\n- "방법/하는법/추천/레시피/시기/나이" 형태로 생성\n- 예: "이유식첫재료추천", "아기수면교육방법", "초등학교입학준비"',
+      '반려동물': '강아지·고양이·반려동물 관련 키워드만.\n- "증상/먹이면안되는것/훈련법/추천/주의사항/케어법" 형태로 생성\n- 예: "강아지구토원인", "고양이먹이면안되는음식", "강아지기초훈련방법"',
+      '이슈·트렌드': '최신 이슈·트렌드·사회현상 관련 키워드.\n- "원인/이유/전망/총정리/반응" 형태로 생성',
     };
     const baseCatGuide = catKeywordGuide[cat] ? '\n★ 카테고리 제한: '+catKeywordGuide[cat] : '';
     const baseQ = userKeyword
